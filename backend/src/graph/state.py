@@ -23,6 +23,7 @@ class VideoAuditState(TypedDict):
     video_metadata: List[Dict[str, Any]]
     transcript: Optional[str]
     ocr_text: List[str]
+    frames: List[str] # Base64 encoded frames
 
 
     # analysis
