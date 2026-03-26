@@ -76,13 +76,21 @@ def index_video_node( state: VideoAuditState) -> Dict[str , Any]:
             # Check Rekognition Text
             if not text_insights or text_insights.get("JobStatus") != "SUCCEEDED":
                 text_insights = vi_service.get_text_detection(text_job_id)
-            
+
             # Check Transcribe
             if not transcript_text:
                 transcript_text = vi_service.get_transcription_text(transcribe_job_name)
             
-            if (raw_insights.get("JobStatus") == "SUCCEEDED") and \
-               (text_insights.get("JobStatus") == "SUCCEEDED") and \
+            # Fail early if any job fails
+            label_status = raw_insights.get("JobStatus")
+            text_status = text_insights.get("JobStatus")
+            
+            if label_status == "FAILED" or text_status == "FAILED":
+                logger.error(f"Analysis job failed. Labels: {label_status}, Text: {text_status}")
+                break
+
+            if (label_status == "SUCCEEDED") and \
+               (text_status == "SUCCEEDED") and \
                transcript_text:
                 print("Analysis completed successfully.")
                 break

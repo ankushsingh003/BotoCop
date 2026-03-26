@@ -50,18 +50,33 @@ class VideoIndexerService:
         """Downloads a video from YouTube using yt-dlp with browser cookie authentication."""
         logger.info(f"Downloading YouTube video: {url}")
         
-        ydl_opts = {
-            'format': 'best[ext=mp4]/best',
-            'outtmpl': output_path,
-            'quiet': False,
-            'no_warnings': True,
-            'noplaylist': True,
-            'cookiesfrombrowser': ('chrome',),  # Use Chrome's cookies to bypass bot detection
-        }
-        
+        # Attempt with cookies if available/requested
         try:
+            ydl_opts = {
+                'format': 'best[ext=mp4]/best',
+                'outtmpl': output_path,
+                'quiet': False,
+                'no_warnings': True,
+                'noplaylist': True,
+                'cookiesfrombrowser': ('chrome',),  # Try Chrome cookies
+            }
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 ydl.download([url])
+        except Exception as e:
+            logger.warning(f"Download with Chrome cookies failed: {e}. Retrying without cookies.")
+            ydl_opts = {
+                'format': 'best[ext=mp4]/best',
+                'outtmpl': output_path,
+                'quiet': False,
+                'no_warnings': True,
+                'noplaylist': True,
+            }
+            try:
+                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                    ydl.download([url])
+            except Exception as e2:
+                logger.error(f"Failed to download YouTube video even without cookies: {e2}")
+                raise
             
             if not os.path.exists(output_path):
                 # Fallback if merger failed or output template varied

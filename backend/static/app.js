@@ -96,7 +96,7 @@ async function startAudit() {
 
         const data = await response.json();
 
-        if (data.success || data.status === "success") {
+        if (response.ok && (data.success || data.status === "success")) {
             displayResults(data);
         } else {
             handleError(data);
@@ -149,7 +149,13 @@ function displayResults(data) {
 }
 
 function handleError(data) {
-    alert("Audit Failed: " + (data.errors ? data.errors.join(', ') : "Unknown error"));
+    let msg = "Unknown error";
+    if (data.errors && data.errors.length > 0) {
+        msg = data.errors.join(', ');
+    } else if (data.detail) {
+        msg = data.detail;
+    }
+    alert("Audit Failed: " + msg);
 }
 
 auditBtn.addEventListener('click', startAudit);
