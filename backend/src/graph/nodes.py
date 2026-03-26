@@ -43,14 +43,17 @@ def index_video_node( state: VideoAuditState) -> Dict[str , Any]:
         # upload part
         vi_service.upload_to_s3(local_path, video_id)
 
-        # start Rekognition analysis
+        # start Rekognition analysis (Labels)
         job_id = vi_service.start_video_analysis("orchestra-frankfurt", f"videos/{video_id}.mp4")
+        
+        # start Rekognition analysis (Text)
+        text_job_id = vi_service.start_text_detection("orchestra-frankfurt", f"videos/{video_id}.mp4")
         
         # start Transcribe analysis
         transcribe_job_name = f"audit_{video_id}"
         vi_service.start_transcription_job("orchestra-frankfurt", f"videos/{video_id}.mp4", transcribe_job_name)
 
-        logger.info(f"Analysis started. Rekognition ID: {job_id}, Transcribe ID: {transcribe_job_name}")
+        logger.info(f"Analysis started. Rekognition Labels ID: {job_id}, Text ID: {text_job_id}, Transcribe ID: {transcribe_job_name}")
 
         # cleaning
         if os.path.exists(local_path):
@@ -61,27 +64,33 @@ def index_video_node( state: VideoAuditState) -> Dict[str , Any]:
         max_retries = 30
         transcript_text = ""
         raw_insights = {}
-
+        text_insights = {}
         print("Polling for analysis results (this may take a minute)...")
         for i in range(max_retries):
             time.sleep(10) # wait 10 seconds between polls
             
-            # Check Rekognition
+            # Check Rekognition Labels
             if not raw_insights or raw_insights.get("JobStatus") != "SUCCEEDED":
                 raw_insights = vi_service.get_insights(job_id)
+            
+            # Check Rekognition Text
+            if not text_insights or text_insights.get("JobStatus") != "SUCCEEDED":
+                text_insights = vi_service.get_text_detection(text_job_id)
             
             # Check Transcribe
             if not transcript_text:
                 transcript_text = vi_service.get_transcription_text(transcribe_job_name)
             
-            if (raw_insights.get("JobStatus") == "SUCCEEDED") and transcript_text:
+            if (raw_insights.get("JobStatus") == "SUCCEEDED") and \
+               (text_insights.get("JobStatus") == "SUCCEEDED") and \
+               transcript_text:
                 print("Analysis completed successfully.")
                 break
             
             print(f"Still processing... (Attempt {i+1}/{max_retries})")
 
         # extract
-        clean_data = vi_service.extract_data(raw_insights, transcript_text)
+        clean_data = vi_service.extract_data(raw_insights, transcript_text, text_insights=text_insights)
         logger.info(f"-----[NODE : Indexer] Extraction Completed-------")
         return clean_data
 

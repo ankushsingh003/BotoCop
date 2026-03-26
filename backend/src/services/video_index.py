@@ -108,6 +108,26 @@ class VideoIndexerService:
             logger.error(f"Failed to get Rekognition results: {e}")
             return {}
 
+    def start_text_detection(self, bucket: str, video_key: str) -> str:
+        """Starts a Rekognition text detection job."""
+        logger.info(f"Starting text detection for s3://{bucket}/{video_key}")
+        try:
+            response = self.rekognition.start_text_detection(
+                Video={"S3Object": {"Bucket": bucket, "Name": video_key}}
+            )
+            return response["JobId"]
+        except Exception as e:
+            logger.error(f"Failed to start Rekognition text detection: {e}")
+            raise
+
+    def get_text_detection(self, job_id: str):
+        """Retrieves results of a Rekognition text detection job."""
+        try:
+            return self.rekognition.get_text_detection(JobId=job_id)
+        except Exception as e:
+            logger.error(f"Failed to get Rekognition text results: {e}")
+            return {}
+
     def get_insights(self, job_id: str):
         """Alias for get_analysis_results to maintain compatibility with nodes.py."""
         return self.get_analysis_results(job_id)
@@ -157,10 +177,11 @@ class VideoIndexerService:
             logger.error(f"Error fetching transcription results: {e}")
             return ""
 
-    def extract_data(self, rek_insights: dict, transcript_text: str = "") -> dict:
-        """Extracts and cleans relevant data from Rekognition insights and Transcribe results."""
+    def extract_data(self, rek_insights: dict, transcript_text: str = "", text_insights: dict = None) -> dict:
+        """Extracts and cleans relevant data from Rekognition insights (Labels & Text) and Transcribe results."""
         logger.info("Extracting combined data from Rekognition and Transcribe")
         
+        # Labels
         labels = rek_insights.get("Labels", []) if rek_insights else []
         clean_labels = [
             {
@@ -171,12 +192,23 @@ class VideoIndexerService:
             for label in labels
         ]
         
+        # OCR Text
+        ocr_lines = []
+        if text_insights and "TextDetections" in text_insights:
+            for detection in text_insights["TextDetections"]:
+                if detection.get("Type") == "LINE":
+                    text = detection.get("TextDetection", {}).get("DetectedText")
+                    if text and text not in ocr_lines:
+                        ocr_lines.append(text)
+        
         # Check JobStatus
         job_status = rek_insights.get("JobStatus", "IN_PROGRESS") if rek_insights else "FAILED"
-        
+        if text_insights and text_insights.get("JobStatus") == "FAILED":
+            job_status = "FAILED"
+            
         return {
             "transcript": transcript_text or "",
-            "ocr_text": [],    # Placeholder for Text Detection results
+            "ocr_text": ocr_lines,
             "video_metadata": clean_labels,
             "final_status": "success" if job_status == "SUCCEEDED" else "failed" if job_status == "FAILED" else "processing"
         }
