@@ -1,6 +1,6 @@
 '''
 Connector between Python and AI Services for video analysis.
-Replaces AWS with Unified AI Analysis (OpenAI).
+Replaces OpenAI with Groq (Whisper).
 '''
 
 import os 
@@ -9,27 +9,26 @@ import yt_dlp
 import cv2
 import base64
 from typing import List, Dict, Any
-from openai import OpenAI
+from groq import Groq
 
 logger = logging.getLogger("video-indexer")
 
 class VideoIndexerService:
     """
-    Service for handling video analysis workflows using Unified AI (OpenAI)
+    Service for handling video analysis workflows using Groq
     and YouTube integration (yt-dlp).
     """
     def __init__(self):
-        self.api_key = os.getenv("OPENAI_API_KEY")
+        self.api_key = os.getenv("GROQ_API_KEY")
         if not self.api_key:
-            logger.warning("OPENAI_API_KEY not found in environment variables.")
+            logger.warning("GROQ_API_KEY not found in environment variables.")
         
-        self.client = OpenAI(api_key=self.api_key) if self.api_key else None
+        self.client = Groq(api_key=self.api_key) if self.api_key else None
 
     def download_youtube_video(self, url: str, output_path: str = "temp_video.mp4") -> str:
         """Downloads a video from YouTube using yt-dlp."""
         logger.info(f"Downloading YouTube video: {url}")
         
-        # Attempt with standard options
         ydl_opts = {
             'format': 'best[ext=mp4]/best',
             'outtmpl': output_path,
@@ -85,29 +84,29 @@ class VideoIndexerService:
         return base64_frames
 
     def transcribe_audio(self, video_path: str) -> str:
-        """Transcribes the audio from a video file using OpenAI Whisper."""
+        """Transcribes the audio from a video file using Groq Whisper."""
         if not self.client:
-            raise ValueError("OpenAI client not initialized. Missing API key.")
+            raise ValueError("Groq client not initialized. Missing API key.")
         
-        logger.info(f"Transcribing audio from {video_path}")
+        logger.info(f"Transcribing audio from {video_path} using Groq Whisper")
         try:
             with open(video_path, "rb") as audio_file:
+                # Groq Whisper API call
                 transcript = self.client.audio.transcriptions.create(
-                    model="whisper-1",
-                    file=audio_file
+                    file=(os.path.basename(video_path), audio_file.read()),
+                    model="whisper-large-v3",
+                    response_format="text"
                 )
-            return transcript.text
+            return str(transcript)
         except Exception as e:
-            logger.error(f"Transcription failed: {e}")
+            logger.error(f"Groq Transcription failed: {e}")
             return ""
 
     def extract_data(self, transcript_text: str, frames: List[str] = None) -> dict:
-        """Placeholder for backward compatibility. Most logic now moved to Unified Model."""
         return {
             "transcript": transcript_text or "",
             "frames_count": len(frames) if frames else 0,
             "final_status": "success" if transcript_text else "failed"
         }
 
-# Alias for backward compatibility
 VideoIndexerServices = VideoIndexerService

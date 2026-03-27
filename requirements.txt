@@ -25,3 +25,5 @@ opensearch-py>=2.8.0
 boto3>=1.36.0
 opencv-python>=4.8.0
 openai>=1.0.0
+groq>=0.11.0
+langchain-groq>=0.1.0
