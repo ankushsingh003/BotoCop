@@ -1,0 +1,26 @@
+name: BotoCop CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - name: Set up Python
+        run: uv python install
+      - name: Install dependencies
+        run: uv sync
+      - name: Run tests
+        run: |
+          # Running main.py simulation as a smoke test
+          # This verifies the graph can be initialized and runs basic logic
+          uv run python main.py
