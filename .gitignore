@@ -16,3 +16,6 @@ env/
 .ENV
 .env.*
 *.local
+
+# Scratch / Test scripts
+test_*.py
