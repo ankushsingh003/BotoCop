@@ -165,6 +165,7 @@ async def audit_video(request: AuditRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 # Basic health check
+@app.get("/health")
 @app.get("/api/health")
 async def health():
     return {"status": "healthy"}
