@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BotoCop | Automated Video Compliance Auditor</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+    <div id="canvas-container"></div>
+    
+    <main class="dashboard">
+        <header>
+            <div class="logo">
+                <h1>BOTO<span>COP</span></h1>
+                <p>Advanced Video Compliance Intelligence</p>
+            </div>
+        </header>
+
+        <section class="control-panel glass">
+            <h2>Audit New Video</h2>
+            <div class="input-group">
+                <input type="text" id="video-url" placeholder="Paste YouTube Video URL here..." autocomplete="off">
+                <button id="audit-btn">Start Audit</button>
+            </div>
+            <div id="status-display" class="status-hidden">
+                <div class="loader"></div>
+                <p id="status-text">Initializing Pipeline...</p>
+            </div>
+        </section>
+
+        <section id="results-panel" class="results-hidden glass">
+            <div class="results-header">
+                <h3>Compliance Report</h3>
+                <div class="badges-wrapper" style="display: flex; gap: 0.5rem; align-items: center;">
+                    <div id="domain-badge" class="badge domain-badge" style="display: none;"></div>
+                    <div id="status-badge" class="badge">SUCCESS</div>
+                </div>
+            </div>
+            
+            <div class="report-summary">
+                <h4>Executive Summary</h4>
+                <p id="report-text">Waiting for audit completion...</p>
+            </div>
+
+            <div class="issues-list">
+                <h4>Identified Issues</h4>
+                <div id="issues-container">
+                    <!-- Issue cards will be injected here -->
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script src="app.js"></script>
+</body>
+</html>
