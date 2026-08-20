@@ -1,0 +1,12 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: botocop-orchestrator
+    metrics_path: /metrics
+    static_configs:
+      # "host.docker.internal" so Prometheus (in its own container) can
+      # reach the FastAPI app running on the host; swap for the app's
+      # service name if it's containerized too (e.g. docker-compose
+      # service "api").
+      - targets: ["host.docker.internal:8000"]
