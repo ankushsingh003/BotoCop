@@ -1,0 +1,31 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+venv/
+env/
+
+# Environment variables / Secrets
+.env
+.ENV
+.env.*
+!.env.example
+*.local
+
+# Scratch / Test scripts
+test_*.py
+!tests/test_*.py
+
+# Data/Database files
+backend/data/
+db_docs.txt
+
+# Leftover local video-pipeline temp files (index_video_node normally
+# deletes these itself, but don't let a crashed run leave one committed)
+temp_*.mp4

@@ -1,0 +1,51 @@
+[project]
+name = "botocop-fraud-detection"
+version = "0.2.0"
+description = "Cross-channel fraud detection intelligence engine"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.129.0",
+    "langchain>=1.2.10",
+    "langchain-community>=0.3.18",
+    "langchain-groq>=0.1.0",
+    "langchain-core>=0.3.0",
+    "langchain-text-splitters>=0.3.0",
+    "langgraph>=1.0.8",
+    "langsmith>=0.7.3",
+    "pydantic>=2.12.5",
+    "pydantic-settings>=2.6.0",
+    "pypdf>=6.7.0",
+    "python-dotenv>=1.2.1",
+    "requests>=2.32.5",
+    "sqlalchemy>=2.0.46",
+    "psycopg2-binary>=2.9.9",
+    "kafka-python>=2.0.2",
+    "boto3>=1.34.0",
+    "prometheus-client>=0.20.0",
+    "uvicorn>=0.40.0",
+    "yt-dlp>=2026.2.4",
+    "opencv-python-headless>=4.8.0",
+    "groq>=0.11.0",
+    "sentence-transformers>=3.0.0",
+    "chromadb>=0.4.0",
+    "numpy>=1.26.0",
+    "scikit-learn>=1.3.0",
+]
+
+# Only needed to run backend/spark/train_transaction_model_spark.py, which
+# is a standalone batch job, not part of the always-on web service. Kept
+# out of the base dependency set so the API container doesn't have to
+# bundle PySpark + a JVM just to serve requests.
+[project.optional-dependencies]
+batch = [
+    "pyspark>=3.5.0",
+    "pyarrow>=18.0.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "pytest-asyncio>=1.4.0",
+    "moto>=5.0.0",
+]
