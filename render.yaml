@@ -22,28 +22,4 @@ services:
       - key: KAFKA_BOOTSTRAP_SERVERS
         sync: false
 
-  # The Kafka consumer is a blocking infinite loop (see
-  # backend/src/ingestion/kafka_consumer.py) -- it cannot run inside a
-  # request/response web service. It needs its own always-on process.
-  # Same codebase, same env vars, different entrypoint and service type.
-  - type: worker
-    name: botocop-kafka-consumer
-    env: python
-    buildCommand: "./build.sh"
-    startCommand: "uv run python -m backend.src.ingestion.kafka_consumer"
-    envVars:
-      - key: GROQ_API_KEY
-        sync: false
-      - key: GROQ_MODEL_NAME
-        value: "llama-3.3-70b-versatile"
-      - key: CASE_DATABASE_URL
-        sync: false
-      - key: MINIO_ENDPOINT
-        sync: false
-      - key: MINIO_ACCESS_KEY
-        sync: false
-      - key: MINIO_SECRET_KEY
-        sync: false
-      - key: KAFKA_BOOTSTRAP_SERVERS
-        sync: false
 
