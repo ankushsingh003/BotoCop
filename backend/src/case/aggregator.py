@@ -14,9 +14,6 @@ logger = logging.getLogger("case-aggregator")
 
 SEVERITY_WEIGHTS = {"low": 0.1, "medium": 0.35, "high": 0.7}
 
-# A single high-severity hit in ONE channel is a strong signal but
-# shouldn't alone trigger cross-channel escalation -- that requires
-# evidence from more than one channel, which is the point of this layer.
 ESCALATION_THRESHOLD = 0.6
 MIN_CHANNELS_FOR_ESCALATION = 2
 
@@ -37,8 +34,6 @@ def compute_case_risk(events: List[Dict[str, Any]]) -> Dict[str, Any]:
             w = SEVERITY_WEIGHTS.get((v.get("severity") or "low").lower(), 0.1)
             max_weight = max(max_weight, w)
 
-    # Cross-channel presence bumps the score: one hit each in 2 channels
-    # is more suspicious than 2 hits in a single channel.
     channel_bonus = 0.15 * (len(channels_seen) - 1) if channels_seen else 0.0
     risk_score = min(1.0, max_weight + channel_bonus)
 

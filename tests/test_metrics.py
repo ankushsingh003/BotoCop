@@ -78,8 +78,6 @@ def test_eval_retries_incremented_on_non_confident_attempts(monkeypatch):
     )
 
     after = _counter_value(EVAL_RETRIES, channel="transaction")
-    # MAX_RETRIES=3 attempts total; a retry is triggered after attempts 1
-    # and 2 (attempt 3 exhausts the bound without triggering another).
     assert after == before + (orchestrator.MAX_RETRIES - 1)
 
 

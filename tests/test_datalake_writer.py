@@ -16,9 +16,6 @@ from backend.src.datalake.config import DATALAKE_BUCKET
 
 @mock_aws
 def test_archive_event_writes_partitioned_json(monkeypatch):
-    # moto mocks the standard AWS endpoint, not a custom one -- unset the
-    # MinIO override for this test (get_s3_client omits endpoint_url when
-    # falsy) so moto actually intercepts the calls.
     import backend.src.datalake.client as client_module
     monkeypatch.setattr(client_module, "MINIO_ENDPOINT", None)
 
@@ -46,9 +43,6 @@ def test_archive_event_writes_partitioned_json(monkeypatch):
 
 @mock_aws
 def test_archive_event_never_raises_on_failure(monkeypatch):
-    # Simulate the archive path failing (e.g. MinIO briefly down) -- this
-    # must not raise, since the live request has already been served by
-    # the time archive_event runs.
     import backend.src.datalake.writer as writer_module
 
     def broken_client():
@@ -57,4 +51,3 @@ def test_archive_event_never_raises_on_failure(monkeypatch):
     monkeypatch.setattr(writer_module, "get_s3_client", broken_client)
 
     archive_event("call", {"linked_account_id": "x"}, {"violations": []}, case_id="case-456")
-    # no exception raised -- that's the assertion

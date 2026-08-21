@@ -9,16 +9,13 @@ from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
 from pydantic import BaseModel, Field, AliasChoices
 from dotenv import load_dotenv
 
-# Load environment variables
 load_dotenv(override=True)
 
-# Configure Logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("botocop-web")
 
 app = FastAPI(title="BotoCop Web API")
 
-# Setup CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -54,9 +51,7 @@ def _startup_checks():
 
 from typing import Optional
 
-# Audit endpoints removed - system is strictly event-driven now.
 
-# Basic health check
 @app.get("/health")
 @app.get("/api/health")
 async def health():
@@ -100,7 +95,6 @@ async def websocket_events(websocket: WebSocket):
     except WebSocketDisconnect:
         logger.info("WebSocket client disconnected from /ws/events")
 
-# Frontend removed - observability should use Grafana, and core interactions via WebSocket/Kafka.
 @app.get("/")
 async def root():
     return {"status": "botocop-api online", "message": "API is strictly event-driven. Use WebSocket or Kafka for ingestion."}

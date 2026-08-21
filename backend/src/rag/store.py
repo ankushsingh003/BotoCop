@@ -29,7 +29,6 @@ def get_client_and_collection(domain: str = "general"):
     client = chromadb.PersistentClient(path=db_path)
     emb_fn = LocalEmbeddingFunction()
     
-    # Normalize domain to match Chroma collection name standards
     normalized = domain.lower().replace("&", "and").replace(" ", "_")
     if normalized == "general":
         collection_name = "regulatory_rules"
@@ -54,13 +53,11 @@ def build_index(domain: str = "general"):
     normalized = domain.lower().replace("&", "and").replace(" ", "_")
     
     if normalized == "general":
-        # Index all PDFs EXCEPT the domain-specific ones
         pdf_files = [
             str(p) for p in data_dir.glob("*.pdf")
             if not p.name.startswith("rules_")
         ]
     else:
-        # Index the specific PDF for this domain
         target_pdf = data_dir / f"rules_{normalized}.pdf"
         if target_pdf.exists():
             pdf_files = [str(target_pdf)]

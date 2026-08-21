@@ -15,7 +15,6 @@ import uuid
 from datetime import datetime, timedelta, timezone
 
 LOW_RISK_COUNTRIES = ["US", "CA", "UK", "DE", "FR", "AU"]
-# Placeholder codes for synthetic "high-risk corridor" testing -- not real countries.
 HIGH_RISK_COUNTRIES = ["XX", "YY", "ZZ"]
 
 NORMAL_CALL_TRANSCRIPTS = [
@@ -43,11 +42,6 @@ def _new_entity_id() -> str:
 
 
 def generate_normal_transaction(entity_id: str = None) -> dict:
-    # Explicit daytime window (7am-10pm) rather than "now minus up to 12
-    # hours" -- the latter depends on wall-clock time and, depending on
-    # when tests run, can wander into the same late-night hours fraud
-    # transactions use, making the hour_of_day feature non-discriminative
-    # and the model's fraud-detection rate flaky by time of day.
     hour = random.randint(7, 22)
     ts = datetime.now(timezone.utc).replace(hour=hour, minute=random.randint(0, 59), second=0, microsecond=0)
     return {

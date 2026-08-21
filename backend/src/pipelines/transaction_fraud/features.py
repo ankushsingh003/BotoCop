@@ -10,8 +10,6 @@ from datetime import datetime
 
 import numpy as np
 
-# Static risk lookup rather than a learned embedding -- keeps the model
-# auditable. In production this would come from a compliance/risk feed.
 COUNTRY_RISK = {"US": 0.05, "CA": 0.05, "UK": 0.1, "DE": 0.1, "FR": 0.1, "AU": 0.05}
 DEFAULT_COUNTRY_RISK = 0.4
 HIGH_RISK_COUNTRY_CODES = {"XX", "YY", "ZZ"}  # synthetic placeholders, see generator.py

@@ -3,11 +3,9 @@ import sys
 import logging
 from pathlib import Path
 
-# Setup logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger("build-index")
 
-# Add the project root directory to sys.path
 project_root = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(project_root))
 
@@ -26,7 +24,6 @@ def main():
         
     logger.info(f"Found {len(pdf_paths)} PDF(s) to index: {pdf_paths}")
     
-    # Check if index already exists to avoid re-indexing
     try:
         _, collection = get_client_and_collection()
         initial_count = collection.count()

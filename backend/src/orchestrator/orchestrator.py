@@ -30,19 +30,12 @@ from backend.src.pipelines.text_fraud.workflow import run_text_fraud_pipeline
 
 logger = logging.getLogger("orchestrator")
 
-# Registry pattern: adding a new channel means adding one entry here,
-# the orchestrator logic itself doesn't change.
 PIPELINES: Dict[str, Callable] = {
     "transaction": run_transaction_fraud_pipeline,
     "call": run_call_fraud_pipeline,
     "text": run_text_fraud_pipeline,
 }
 
-# All four channels are LLM-based now (RAG for transactions and video,
-# direct classification for calls and text), so the eval/retry loop
-# applies to all of them -- retrying with feedback can change the
-# LLM's output for any of these, unlike the earlier deterministic-ML
-# version of the transaction pipeline.
 PIPELINE_REQUIRES_EVAL: Dict[str, bool] = {
     "transaction": True,
     "call": True,
@@ -109,8 +102,6 @@ def handle_event(
             update_case_status(case.case_id, CaseStatus.CLOSED_CLEARED, risk_score=risk["risk_score"])
             CASE_STATUS_TRANSITIONS.labels(status=CaseStatus.CLOSED_CLEARED.value).inc()
         else:
-            # Judge itself isn't confident either way -- leave the case open,
-            # waiting for more evidence, rather than forcing a decision.
             update_case_status(case.case_id, case.status, risk_score=risk["risk_score"])
     else:
         update_case_status(case.case_id, case.status, risk_score=risk["risk_score"])

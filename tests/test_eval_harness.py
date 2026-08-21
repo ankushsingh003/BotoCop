@@ -13,8 +13,6 @@ from backend.eval.run_eval import compute_metrics, run_eval, run_judge_eval, app
 
 
 def test_golden_dataset_has_both_classes_per_channel():
-    # A dataset that's all-fraud or all-normal can't measure precision
-    # AND recall meaningfully -- catch that structurally, not just by eye.
     by_channel = {}
     for ex in ALL_EXAMPLES:
         by_channel.setdefault(ex.channel, {True: 0, False: 0})[ex.is_fraud] += 1
@@ -112,6 +110,4 @@ def test_judge_alignment_detects_overconfident_wrong_judge():
 
     report = run_judge_eval({"transaction": never_flag}, OverconfidentJudge, examples=examples)
 
-    # example "a": pipeline wrong (missed fraud) but judge confident -> misaligned
-    # example "b": pipeline right, judge confident -> aligned
     assert report["judge_alignment_rate"] == 0.5

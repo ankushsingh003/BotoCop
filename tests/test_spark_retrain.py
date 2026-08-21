@@ -39,17 +39,12 @@ def local_archive(tmp_path):
 def test_spark_retrain_reads_and_fits_on_local_archive(local_archive, tmp_path):
     from backend.spark.train_transaction_model_spark import train
 
-    # write to an isolated model dir -- must NOT touch the real
-    # backend/data/models path, which other tests depend on.
     isolated_model_dir = str(tmp_path / "models")
     model, stats = train(local_archive, contamination=0.05, model_dir=isolated_model_dir)
 
     assert model is not None
     assert set(stats["feature_names"]) == {"amount", "hour_of_day", "is_new_payee", "country_risk"}
 
-    # The retrained model should still reliably flag synthetic fraud as
-    # an outlier -- proves the Spark-engineered features match what the
-    # live scoring path expects (features.py), not just that training ran.
     from backend.src.pipelines.transaction_fraud.features import transaction_to_features
 
     flagged = 0

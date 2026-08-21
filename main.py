@@ -67,16 +67,13 @@ def run_db_polling_simulation():
     """
     logger.info("Starting SQL Database Polling...")
     
-    # Ensure the case database (cases.db) is initialized
     init_db()
     
-    # Ensure the ingestion database (legacy_events.db) is initialized and seeded
     seed_database()
     
     while True:
         session = SessionLocal()
         try:
-            # Get next unprocessed event
             unprocessed = session.query(LegacyEvent).filter(LegacyEvent.processed == False).first()
             
             if unprocessed:
@@ -88,12 +85,10 @@ def run_db_polling_simulation():
                     result = handle_event(unprocessed.event_type, payload)
                     logger.info(f"Successfully processed {unprocessed.id}. Case ID: {result['case_id']} | Risk Score: {result.get('case_risk', {}).get('risk_score')}")
                     
-                    # Mark as processed
                     unprocessed.processed = True
                     session.commit()
                 except Exception as e:
                     logger.error(f"Failed to process row {unprocessed.id}: {e}")
-                    # Mark as processed even on failure so it doesn't block the queue
                     unprocessed.processed = True
                     session.commit()
                     

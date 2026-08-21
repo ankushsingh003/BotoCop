@@ -22,8 +22,6 @@ def _as_aware(dt):
 
 logger = logging.getLogger("case-store")
 
-# A case with no new evidence after this window stops waiting for
-# correlated signals and is treated as closed rather than left open forever.
 STALE_AFTER = timedelta(days=14)
 
 

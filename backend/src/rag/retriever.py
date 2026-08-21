@@ -14,15 +14,12 @@ def mmr(query_embedding, candidate_embeddings, candidates, lambda_param=0.5, top
     remaining = list(range(len(candidates)))
 
     while len(selected) < top_k and remaining:
-        # Relevance score: similarity to query
         relevance = [float(cosine_similarity([query_embedding], [candidate_embeddings[i]])[0][0]) 
                      for i in remaining]
         
         if not selected:
-            # First pick: purely most relevant
             best = remaining[np.argmax(relevance)]
         else:
-            # Subsequent picks: balance relevance vs redundancy (similarity to already selected)
             redundancy = [max(float(cosine_similarity([candidate_embeddings[i]], 
                                                       [candidate_embeddings[s]])[0][0]) 
                              for s in selected) 
@@ -42,7 +39,6 @@ def trim_to_sentence_boundaries(text: str) -> str:
     if not text:
         return ""
 
-    # Check if the first character is lowercase (indicating starting mid-sentence)
     starts_mid_sentence = False
     for char in text:
         if char.isalpha():
@@ -51,7 +47,6 @@ def trim_to_sentence_boundaries(text: str) -> str:
             break
 
     if starts_mid_sentence:
-        # Trim until the first sentence boundary
         first_boundary = -1
         for i, char in enumerate(text):
             if char in ".!?":
@@ -60,11 +55,9 @@ def trim_to_sentence_boundaries(text: str) -> str:
         if first_boundary != -1 and first_boundary < len(text) - 1:
             text = text[first_boundary + 1:].strip()
 
-    # Check if the last character is punctuation (indicating ending cleanly)
     ends_mid_sentence = text[-1] not in ".!?\"'”’" if text else False
 
     if ends_mid_sentence:
-        # Trim after the last sentence boundary
         last_boundary = -1
         for i in range(len(text) - 1, -1, -1):
             if text[i] in ".!?":
@@ -73,7 +66,6 @@ def trim_to_sentence_boundaries(text: str) -> str:
         if last_boundary != -1:
             text = text[:last_boundary + 1].strip()
 
-    # Fallback if too short or empty
     if len(text) < 15:
         return text + "." if text and text[-1] not in ".!?\"'”’" else text
 
@@ -103,7 +95,6 @@ def sanitize_text(text: str) -> str:
     for orig, rep in replacements.items():
         text = text.replace(orig, rep)
     
-    # Keep only printable ASCII
     text = "".join(ch if (32 <= ord(ch) <= 126 or ch in "\n\r\t") else " " for ch in text)
     text = re.sub(r' +', ' ', text)
     return text
@@ -112,7 +103,6 @@ def retrieve(query: str, domain: str = "general") -> str:
     normalized = domain.lower().replace("&", "and").replace(" ", "_")
     client, collection = get_client_and_collection(domain=domain)
     
-    # Auto-index if database is empty
     if collection.count() == 0:
         logger.info(f"ChromaDB '{domain}' collection is empty. Building index from PDF files...")
         build_index(domain=domain)
@@ -122,11 +112,9 @@ def retrieve(query: str, domain: str = "general") -> str:
         logger.warning(f"No documents available in the RAG collection for domain '{domain}'.")
         return "No compliance rules found."
 
-    # Embed the query
     logger.info(f"Embedding query: '{query}'")
     query_embedding = get_embedder().encode([query])[0].tolist()
 
-    # Fetch a larger candidate pool (top-20)
     logger.info("Fetching candidate pool (top-20) from ChromaDB...")
     results = collection.query(
         query_embeddings=[query_embedding],
@@ -141,7 +129,6 @@ def retrieve(query: str, domain: str = "general") -> str:
     metas = results["metadatas"][0]
     embs = results["embeddings"][0]
 
-    # De-duplicate candidates by document text to prevent repeating headers/footers from dominating
     candidates = []
     candidate_embeddings = []
     seen_texts = set()
@@ -152,7 +139,6 @@ def retrieve(query: str, domain: str = "general") -> str:
             candidates.append({"document": docs[i], "metadata": metas[i]})
             candidate_embeddings.append(embs[i])
     
-    # Run MMR over the candidates to choose top-5
     lambda_param = getattr(settings, "RAG_MMR_LAMBDA", 0.5)
     logger.info(f"Running MMR selection (lambda={lambda_param}) over {len(candidates)} unique candidates...")
     selected_candidates = mmr(
@@ -163,7 +149,6 @@ def retrieve(query: str, domain: str = "general") -> str:
         top_k=min(5, len(candidates))
     )
 
-    # Format the selected chunks with source labels
     formatted_rules = []
     for idx, cand in enumerate(selected_candidates, 1):
         doc_text = sanitize_text(trim_to_sentence_boundaries(cand["document"]))

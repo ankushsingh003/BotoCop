@@ -6,7 +6,6 @@ from backend.src.case.store import get_case_with_events
 from backend.src.orchestrator import orchestrator
 from backend.src.orchestrator.eval_agent import EventEvalModel, CaseEvalModel
 
-# DB setup/teardown is handled once for the whole session by tests/conftest.py
 
 
 def fake_transaction_pipeline(event_payload, retry_feedback=None):
@@ -58,7 +57,6 @@ def test_orchestrator_links_two_channels_and_escalates(monkeypatch):
     )
     assert result1["case_risk"]["should_escalate"] is False  # only 1 channel so far
 
-    # call channel mocked too (both pipelines are LLM-based now, no network here)
     result2 = orchestrator.handle_event(
         "call",
         {"linked_account_id": entity_id,
@@ -98,5 +96,4 @@ def test_orchestrator_bounded_retry_loop(monkeypatch):
         eval_agent=mock_eval_agent,
     )
 
-    # never-confident eval must not loop forever -- stops at the bound
     assert call_count["n"] == orchestrator.MAX_RETRIES

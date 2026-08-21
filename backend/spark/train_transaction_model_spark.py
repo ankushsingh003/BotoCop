@@ -36,8 +36,6 @@ LOW_RISK_COUNTRY_MAP = {"US": 0.05, "CA": 0.05, "UK": 0.1, "DE": 0.1, "FR": 0.1,
 
 
 def build_spark_session(app_name: str = "botocop-transaction-retrain"):
-    # S3A config only matters when data_path is s3a://; harmless to set
-    # even when reading local files for a test/dry-run.
     return (
         SparkSession.builder.appName(app_name)
         .config("spark.hadoop.fs.s3a.endpoint", os.getenv("MINIO_ENDPOINT", "http://localhost:9000"))
@@ -88,9 +86,6 @@ def train(data_path: str, contamination: float = 0.05, model_dir: str = None):
         if n == 0:
             raise ValueError(f"No archived records found at {data_path}")
 
-        # Collect the small engineered matrix (one row per transaction),
-        # not the raw archive -- this is the point where distributed
-        # processing hands off to a single-machine fit.
         pdf = features_df.toPandas()
         X = pdf[FEATURE_NAMES].to_numpy()
 

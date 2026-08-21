@@ -14,8 +14,6 @@ def get_s3_client():
         aws_access_key_id=MINIO_ACCESS_KEY,
         aws_secret_access_key=MINIO_SECRET_KEY,
     )
-    # Omit endpoint_url when unset (e.g. in tests, where moto mocks the
-    # standard AWS endpoint) -- only override it to hit a real MinIO server.
     if MINIO_ENDPOINT:
         kwargs["endpoint_url"] = MINIO_ENDPOINT
     return boto3.client("s3", **kwargs)

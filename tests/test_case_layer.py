@@ -5,7 +5,6 @@ from backend.src.case.store import append_event, get_case_with_events, update_ca
 from backend.src.case.aggregator import compute_case_risk
 from backend.src.case.models import CaseStatus
 
-# DB setup/teardown is handled once for the whole session by tests/conftest.py
 
 
 def test_resolve_entity_id():

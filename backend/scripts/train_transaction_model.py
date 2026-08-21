@@ -29,8 +29,6 @@ def train(n_samples: int = 500, contamination: float = 0.05):
     model = IsolationForest(contamination=contamination, random_state=42)
     model.fit(X)
 
-    # Saved alongside the model so inference can explain *which* feature
-    # was most deviant (z-score), not just emit a bare anomaly score.
     stats = {
         "mean": X.mean(axis=0).tolist(),
         "std": (X.std(axis=0) + 1e-6).tolist(),
