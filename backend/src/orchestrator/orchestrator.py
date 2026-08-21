@@ -27,7 +27,6 @@ from backend.src.orchestrator import eval_agent as default_eval_agent
 from backend.src.pipelines.transaction_fraud.workflow import run_transaction_fraud_pipeline
 from backend.src.pipelines.call_fraud.workflow import run_call_fraud_pipeline
 from backend.src.pipelines.text_fraud.workflow import run_text_fraud_pipeline
-from backend.src.pipelines.video_compliance.workflow import run_video_compliance_pipeline
 
 logger = logging.getLogger("orchestrator")
 
@@ -37,7 +36,6 @@ PIPELINES: Dict[str, Callable] = {
     "transaction": run_transaction_fraud_pipeline,
     "call": run_call_fraud_pipeline,
     "text": run_text_fraud_pipeline,
-    "video": run_video_compliance_pipeline,
 }
 
 # All four channels are LLM-based now (RAG for transactions and video,
@@ -49,7 +47,6 @@ PIPELINE_REQUIRES_EVAL: Dict[str, bool] = {
     "transaction": True,
     "call": True,
     "text": True,
-    "video": True,
 }
 
 MAX_RETRIES = 3

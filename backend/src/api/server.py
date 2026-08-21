@@ -54,115 +54,7 @@ def _startup_checks():
 
 from typing import Optional
 
-# Request & Response Models
-class AuditRequest(BaseModel):
-    url: str = Field(validation_alias=AliasChoices("url", "video_url"))
-
-class ViolationItem(BaseModel):
-    rule: str
-    severity: str        # "high" / "medium" / "low"
-    description: str
-    source: str          # "audio" or "visual"
-
-class AuditResponse(BaseModel):
-    video_url: str
-    status: str                        # "pass" or "fail"
-    domain: str                        # "finance" / "healthcare" / "food_and_beverage" / "general"
-    audio_violations: list[ViolationItem]
-    visual_violations: list[ViolationItem]
-    rag_sources: list[str]
-    total_violations: int
-
-@app.post("/audit", response_model=AuditResponse)
-@app.post("/api/audit", response_model=AuditResponse)
-async def audit_video(request: AuditRequest):
-    try:
-        # Lazy load the heavy graph only when needed
-        logger.info("Importing video audit graph...")
-        from backend.src.graph.workflow import video_audit_graph
-        
-        session_id = str(uuid.uuid4())
-        url = request.url
-        logger.info(f"Audit requested for: {url} (Session: {session_id})")
-        
-        input_data = {
-            "video_url": url,
-            "video_id": session_id[:8],
-            "compliance_result": [],
-            "error": []
-        }
-        
-        # Invoke the graph
-        result = video_audit_graph.invoke(input_data)
-        merged = result.get("merged_report", {})
-        
-        # Ensure merged_report has expected audio/visual keys (for fallback/legacy support)
-        if "audio" not in merged or "visual" not in merged:
-            visual_list = result.get("visual_violations") or []
-            compliance_list = result.get("compliance_result") or []
-            visual_desc_set = {v.get("description") for v in visual_list if v.get("description")}
-            audio_list = []
-            v_len = len(visual_list)
-            if v_len > 0 and len(compliance_list) >= v_len:
-                match = True
-                for i in range(v_len):
-                    if compliance_list[-v_len + i].get("description") != visual_list[i].get("description"):
-                        match = False
-                        break
-                if match:
-                    audio_list = compliance_list[:-v_len]
-                else:
-                    audio_list = [item for item in compliance_list if item.get("description") not in visual_desc_set]
-            else:
-                audio_list = compliance_list
-                
-            def map_severity(raw_sev: str) -> str:
-                if not raw_sev:
-                    return "low"
-                raw_sev_lower = raw_sev.lower()
-                if raw_sev_lower in ("high", "medium", "low"):
-                    return raw_sev_lower
-                if "critical" in raw_sev_lower:
-                    return "high"
-                elif "warning" in raw_sev_lower:
-                    return "medium"
-                elif "info" in raw_sev_lower:
-                    return "low"
-                return "low"
-                
-            merged["audio"] = [
-                {
-                    "rule": item.get("category") or "General",
-                    "severity": map_severity(item.get("severity")),
-                    "description": item.get("description") or "",
-                    "source": "audio"
-                }
-                for item in audio_list
-            ]
-            merged["visual"] = [
-                {
-                    "rule": item.get("category") or "General",
-                    "severity": map_severity(item.get("severity")),
-                    "description": item.get("description") or "",
-                    "source": "visual"
-                }
-                for item in visual_list
-            ]
-            merged["status"] = "pass" if result.get("final_status") == "success" else "fail"
-            
-        return AuditResponse(
-            video_url=url,
-            status=merged.get("status", "unknown"),
-            domain=result.get("domain") or "general",
-            audio_violations=merged.get("audio", []),
-            visual_violations=merged.get("visual", []),
-            rag_sources=result.get("rag_sources", []),
-            total_violations=len(merged.get("audio", [])) + len(merged.get("visual", []))
-        )
-        
-    except Exception as e:
-        logger.error(f"Audit failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+# Audit endpoints removed - system is strictly event-driven now.
 
 # Basic health check
 @app.get("/health")
@@ -208,15 +100,10 @@ async def websocket_events(websocket: WebSocket):
     except WebSocketDisconnect:
         logger.info("WebSocket client disconnected from /ws/events")
 
-# Serve Frontend
-# server.py is in backend/src/api/
-# static is in backend/static/
-static_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "static"))
-if not os.path.exists(static_path):
-    os.makedirs(static_path)
-
-logger.info(f"Serving static files from: {static_path}")
-app.mount("/", StaticFiles(directory=static_path, html=True), name="static")
+# Frontend removed - observability should use Grafana, and core interactions via WebSocket/Kafka.
+@app.get("/")
+async def root():
+    return {"status": "botocop-api online", "message": "API is strictly event-driven. Use WebSocket or Kafka for ingestion."}
 
 if __name__ == "__main__":
     import uvicorn

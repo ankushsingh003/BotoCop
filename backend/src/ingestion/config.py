@@ -8,7 +8,6 @@ KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
 TRANSACTION_TOPIC = os.getenv("KAFKA_TRANSACTION_TOPIC", "fraud.transaction.events")
 CALL_TOPIC = os.getenv("KAFKA_CALL_TOPIC", "fraud.call.events")
 TEXT_TOPIC = os.getenv("KAFKA_TEXT_TOPIC", "fraud.text.events")
-VIDEO_TOPIC = os.getenv("KAFKA_VIDEO_TOPIC", "fraud.video.events")
 
 # Where processed results get published, so downstream systems (a
 # dashboard, an alerting service) can consume outcomes without querying
