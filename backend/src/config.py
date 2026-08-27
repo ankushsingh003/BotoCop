@@ -3,13 +3,13 @@ from pathlib import Path
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
-    GROQ_API_KEY: str = ""
-    GROQ_MODEL_NAME: str = "llama-3.3-70b-versatile"
-    GROQ_VISION_MODEL_NAME: str = "meta-llama/llama-4-scout-17b-16e-instruct"
+    GEMINI_API_KEY: str = ""
+    GEMINI_MODEL_NAME: str = "gemini-2.5-flash"
+    GEMINI_VISION_MODEL_NAME: str = "gemini-2.5-flash"
     
     @property
-    def groq_vision_model(self) -> str:
-        return self.GROQ_VISION_MODEL_NAME
+    def gemini_vision_model(self) -> str:
+        return self.GEMINI_VISION_MODEL_NAME
 
     RAG_DATA_DIR: str = str(Path(__file__).resolve().parent.parent / "data")
     LANGCHAIN_TRACING_V2: str = "false"
