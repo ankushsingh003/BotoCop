@@ -16,7 +16,7 @@ import os
 import uuid
 from typing import Dict, Any, List, Optional
 
-from langchain_groq import ChatGroq
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import HumanMessage, SystemMessage
 from pydantic import BaseModel, Field
 
@@ -39,9 +39,9 @@ class CaseEvalModel(BaseModel):
 
 
 def _get_llm():
-    api_key = os.getenv("GROQ_API_KEY")
-    model_name = os.getenv("GROQ_MODEL_NAME", "llama-3.3-70b-versatile")
-    return ChatGroq(model_name=model_name, temperature=0.0, groq_api_key=api_key)
+    api_key = os.getenv("GEMINI_API_KEY")
+    model_name = os.getenv("GEMINI_MODEL_NAME", "gemini-2.5-flash")
+    return ChatGoogleGenerativeAI(model=model_name, temperature=0.0, google_api_key=api_key)
 
 
 def _extract_json(text: str) -> dict:

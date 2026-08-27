@@ -5,7 +5,7 @@ import re
 import uuid
 from typing import Dict, Any, List
 
-from langchain_groq import ChatGroq
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import HumanMessage, SystemMessage
 from pydantic import BaseModel, Field
 
@@ -69,15 +69,15 @@ def retrieve_rules_node(state: TransactionFraudState) -> Dict[str, Any]:
 
 
 def audit_transaction_node(state: TransactionFraudState) -> Dict[str, Any]:
-    """Groq LLM audits the transaction against retrieved rules -- same
+    """Gemini LLM audits the transaction against retrieved rules -- same
     JSON-schema-enforced pattern as the video pipeline's auditor node."""
     transaction = state.get("transaction") or {}
     retrieved_rules = state.get("retrieved_rules") or "No rules retrieved."
     retry_feedback = state.get("retry_feedback")
 
-    api_key = os.getenv("GROQ_API_KEY")
-    model_name = os.getenv("GROQ_MODEL_NAME", "llama-3.3-70b-versatile")
-    llm = ChatGroq(model_name=model_name, temperature=0.0, groq_api_key=api_key)
+    api_key = os.getenv("GEMINI_API_KEY")
+    model_name = os.getenv("GEMINI_MODEL_NAME", "gemini-2.5-flash")
+    llm = ChatGoogleGenerativeAI(model=model_name, temperature=0.0, google_api_key=api_key)
 
     cache_buster = str(uuid.uuid4())
     system_prompt = (
