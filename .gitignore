@@ -20,7 +20,8 @@ env/
 
 # Scratch / Test scripts
 test_*.py
-!tests/test_*.py
+tests/
+
 
 # Data/Database files
 backend/data/
