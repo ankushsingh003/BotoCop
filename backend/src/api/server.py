@@ -33,7 +33,7 @@ def _startup_checks():
     harmless to run on every boot, including every container restart.
 
     Also fails loudly (a clear log line, not a silent per-request
-    failure) if GROQ_API_KEY is unset, since every pipeline and both eval
+    failure) if GEMINI_API_KEY is unset, since every pipeline and both eval
     judges depend on it -- without this, the app boots fine and just
     quietly returns final_status="failed" on every single audit.
     """
@@ -41,10 +41,10 @@ def _startup_checks():
     init_db()
     logger.info("Case DB tables verified/created on startup.")
 
-    if not os.getenv("GROQ_API_KEY"):
+    if not os.getenv("GEMINI_API_KEY"):
         logger.warning(
-            "GROQ_API_KEY is not set. The server will start, but every "
-            "pipeline audit and both eval-agent judges call Groq and will "
+            "GEMINI_API_KEY is not set. The server will start, but every "
+            "pipeline audit and both eval-agent judges call Gemini and will "
             "fail on every request until this is configured."
         )
 
