@@ -460,9 +460,6 @@
                 <div class="nav-item" onclick="showTab(this, 'search')">
                     <span>Call Search & Audit</span>
                 </div>
-                <div class="nav-item" onclick="showTab(this, 'pipeline')">
-                    <span>Pipeline Architecture</span>
-                </div>
                 <div class="nav-item" onclick="showTab(this, 'metrics')">
                     <span>Metrics & Telemetry</span>
                 </div>
@@ -589,60 +586,7 @@
                 </div>
             </div>
 
-            <!-- TAB 3: PIPELINE ARCHITECTURE -->
-            <div id="tab-pipeline" class="tab-pane">
-                <div class="panel">
-                    <div class="panel-header">
-                        <div class="panel-title">5-Layer Defense Pipeline Overview</div>
-                    </div>
-                    <div class="table-container">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Stage</th>
-                                    <th>Mechanism</th>
-                                    <th>Latency</th>
-                                    <th>Action Taken</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td><strong>Layer 1: ML & LLM</strong></td>
-                                    <td>Multi-stage Pre-Filter + Script Cache + Gemini Reasoning</td>
-                                    <td>2.5 ms (Cache) / 450 ms (LLM)</td>
-                                    <td>Scam Intent & Phishing Audit</td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Layer 2: Carrier Signal</strong></td>
-                                    <td>STIR/SHAKEN Token & Line-Type Lookup (MOBILE / VOIP)</td>
-                                    <td>&lt; 5 ms</td>
-                                    <td>Caller ID Spoof Detection</td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Layer 3: Velocity Analyzer</strong></td>
-                                    <td>1-Hour Sliding Window Fan-Out & Target Count Tracking</td>
-                                    <td>&lt; 1 ms</td>
-                                    <td>Boiler Room Campaign Interception</td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Layer 4: Blocklist Short-Circuit</strong></td>
-                                    <td>Deterministic O(1) Hash Map Short-Circuiting</td>
-                                    <td style="color: var(--accent-blue); font-weight: 700;">&lt; 1.8 ms</td>
-                                    <td>Sub-Millisecond Direct Block</td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Layer 5: HITL Feedback Loop</strong></td>
-                                    <td>Closed-Loop Human Analyst Disposition API</td>
-                                    <td>Asynchronous</td>
-                                    <td>Ground-Truth Model Retraining</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <!-- TAB 4: METRICS & TELEMETRY (COMPLETE 6 GRAFANA CHARTS GRID) -->
+            <!-- TAB 3: METRICS & TELEMETRY (COMPLETE 6 GRAFANA CHARTS GRID) -->
             <div id="tab-metrics" class="tab-pane">
                 <div class="layout-grid-3x2">
                     <div class="panel">
@@ -672,7 +616,7 @@
                 </div>
             </div>
 
-            <!-- TAB 5: ALERTS & REVIEW -->
+            <!-- TAB 4: ALERTS & REVIEW -->
             <div id="tab-alerts" class="tab-pane">
                 <div class="panel">
                     <div class="panel-header"><div class="panel-title">Pending Analyst Reviews (Human-In-The-Loop)</div></div>
@@ -725,7 +669,6 @@
             const titles = {
                 'overview': ['Dynamic Multi-Factor Fraud Attribution Heatmap', 'Real-time risk factor impact speed and live execution telemetry'],
                 'search': ['Call Search & Forensic Audit', 'Inspect individual call records, transcripts, and SHA-256 evidence packages'],
-                'pipeline': ['Pipeline Architecture', 'Performance and latency breakdown across all 5 defense layers'],
                 'metrics': ['Metrics & Telemetry (Grafana Complete Suite)', 'Full 6-panel Prometheus & Grafana APM telemetry metrics'],
                 'alerts': ['Alerts & Review', 'Human-in-the-loop analyst verification console']
             };
@@ -743,139 +686,66 @@
 
         const labelsTime = ['03:20', '03:25', '03:30', '03:35', '03:40', '03:45', 'Now'];
 
-        // 🔥 Dynamic Multi-Factor Fraud Attribution Heatmap Chart (Main Overview Page)
+        // Dynamic Multi-Factor Fraud Attribution Heatmap Chart
         const ctxFactor = document.getElementById('factorHeatmapChart').getContext('2d');
         const factorChart = new Chart(ctxFactor, {
             type: 'line',
             data: {
                 labels: labelsTime,
                 datasets: [
-                    { 
-                        label: '🔥 Digital Arrest & Urgency Intent (HIGH IMPACT - Moves Fast)', 
-                        data: [75, 82, 91, 88, 94, 98, 96], 
-                        borderColor: '#ef4444', 
-                        backgroundColor: 'rgba(239, 68, 68, 0.05)',
-                        borderWidth: 3, 
-                        tension: 0.2, 
-                        fill: true 
-                    },
-                    { 
-                        label: '⚡ 1-Hour Fan-Out Velocity (HIGH IMPACT - Moves Fast)', 
-                        data: [65, 78, 85, 90, 88, 92, 95], 
-                        borderColor: '#f59e0b', 
-                        borderWidth: 3, 
-                        tension: 0.2 
-                    },
-                    { 
-                        label: '🛡️ Layer 4 Known Scammer Blocklist Match (CRITICAL - Fast Response)', 
-                        data: [50, 62, 70, 85, 91, 95, 99], 
-                        borderColor: '#10b981', 
-                        borderWidth: 3, 
-                        tension: 0.2 
-                    },
-                    { 
-                        label: '📞 VOIP / Caller ID Spoof Risk (MEDIUM IMPACT - Moderate Speed)', 
-                        data: [40, 45, 52, 58, 60, 64, 68], 
-                        borderColor: '#8b5cf6', 
-                        borderWidth: 2, 
-                        tension: 0.2 
-                    },
-                    { 
-                        label: '⏱️ Call Duration & Off-Hours Risk (LOW IMPACT - Moves Slowly)', 
-                        data: [12, 14, 15, 16, 15, 16, 17], 
-                        borderColor: '#94a3b8', 
-                        borderWidth: 1.5, 
-                        tension: 0.1 
-                    }
+                    { label: '🔥 Digital Arrest & Urgency Intent (HIGH IMPACT - Moves Fast)', data: [75, 82, 91, 88, 94, 98, 96], borderColor: '#ef4444', backgroundColor: 'rgba(239, 68, 68, 0.05)', borderWidth: 3, tension: 0.2, fill: true },
+                    { label: '⚡ 1-Hour Fan-Out Velocity (HIGH IMPACT - Moves Fast)', data: [65, 78, 85, 90, 88, 92, 95], borderColor: '#f59e0b', borderWidth: 3, tension: 0.2 },
+                    { label: '🛡️ Layer 4 Known Scammer Blocklist Match (CRITICAL - Fast Response)', data: [50, 62, 70, 85, 91, 95, 99], borderColor: '#10b981', borderWidth: 3, tension: 0.2 },
+                    { label: '📞 VOIP / Caller ID Spoof Risk (MEDIUM IMPACT - Moderate Speed)', data: [40, 45, 52, 58, 60, 64, 68], borderColor: '#8b5cf6', borderWidth: 2, tension: 0.2 },
+                    { label: '⏱️ Call Duration & Off-Hours Risk (LOW IMPACT - Moves Slowly)', data: [12, 14, 15, 16, 15, 16, 17], borderColor: '#94a3b8', borderWidth: 1.5, tension: 0.1 }
                 ]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                plugins: {
-                    legend: { position: 'top', labels: { boxWidth: 12, font: { weight: 600, size: 12 } } }
-                },
-                scales: {
-                    x: { grid: { color: '#e2e8f0' } },
-                    y: { grid: { color: '#e2e8f0' }, min: 0, max: 100, title: { display: true, text: 'Factor Attribution Intensity Score (0 - 100)' } }
-                }
+                plugins: { legend: { position: 'top', labels: { boxWidth: 12, font: { weight: 600, size: 12 } } } },
+                scales: { x: { grid: { color: '#e2e8f0' } }, y: { grid: { color: '#e2e8f0' }, min: 0, max: 100, title: { display: true, text: 'Factor Attribution Intensity Score (0 - 100)' } } }
             }
         });
 
         // 6 Grafana Telemetry Charts
         new Chart(document.getElementById('chartEvents').getContext('2d'), {
             type: 'line',
-            data: {
-                labels: labelsTime,
-                datasets: [
-                    { label: 'Call Channel', data: [0.005, 0.012, 0.025, 0.024, 0.010, 0.008, 0.010], borderColor: '#10b981', borderWidth: 2, tension: 0.2 },
-                    { label: 'Transaction Channel', data: [0.001, 0.001, 0.002, 0.002, 0.001, 0.001, 0.002], borderColor: '#f59e0b', borderWidth: 2, tension: 0.2 }
-                ]
-            },
+            data: { labels: labelsTime, datasets: [{ label: 'Call Channel', data: [0.005, 0.012, 0.025, 0.024, 0.010, 0.008, 0.010], borderColor: '#10b981', borderWidth: 2, tension: 0.2 }, { label: 'Transaction Channel', data: [0.001, 0.001, 0.002, 0.002, 0.001, 0.001, 0.002], borderColor: '#f59e0b', borderWidth: 2, tension: 0.2 }] },
             options: { responsive: true, maintainAspectRatio: false, scales: { x: { grid: { color: '#e2e8f0' } }, y: { grid: { color: '#e2e8f0' }, beginAtZero: true } } }
         });
 
         new Chart(document.getElementById('chartViolations').getContext('2d'), {
             type: 'line',
-            data: {
-                labels: labelsTime,
-                datasets: [
-                    { label: 'Critical Violations', data: [0, 0.001, 0.0035, 0.0036, 0.0037, 0, 0], borderColor: '#ef4444', borderWidth: 2, tension: 0.1 },
-                    { label: 'High Risk Violations', data: [0.001, 0.002, 0.004, 0.005, 0.004, 0.002, 0.001], borderColor: '#f59e0b', borderWidth: 2, tension: 0.1 }
-                ]
-            },
+            data: { labels: labelsTime, datasets: [{ label: 'Critical Violations', data: [0, 0.001, 0.0035, 0.0036, 0.0037, 0, 0], borderColor: '#ef4444', borderWidth: 2, tension: 0.1 }, { label: 'High Risk Violations', data: [0.001, 0.002, 0.004, 0.005, 0.004, 0.002, 0.001], borderColor: '#f59e0b', borderWidth: 2, tension: 0.1 }] },
             options: { responsive: true, maintainAspectRatio: false, scales: { x: { grid: { color: '#e2e8f0' } }, y: { grid: { color: '#e2e8f0' }, beginAtZero: true } } }
         });
 
         new Chart(document.getElementById('chartDuration').getContext('2d'), {
             type: 'line',
-            data: {
-                labels: labelsTime,
-                datasets: [
-                    { label: 'p50 Call Channel (s)', data: [7.5, 5.2, 8.1, 8.4, 6.2, 7.8, 8.1], borderColor: '#10b981', borderWidth: 2, tension: 0.2 },
-                    { label: 'p95 Call Channel (s)', data: [9.8, 9.6, 9.9, 10.0, 9.9, 10.0, 10.0], borderColor: '#2563eb', borderWidth: 2, tension: 0.2 }
-                ]
-            },
+            data: { labels: labelsTime, datasets: [{ label: 'p50 Call Channel (s)', data: [7.5, 5.2, 8.1, 8.4, 6.2, 7.8, 8.1], borderColor: '#10b981', borderWidth: 2, tension: 0.2 }, { label: 'p95 Call Channel (s)', data: [9.8, 9.6, 9.9, 10.0, 9.9, 10.0, 10.0], borderColor: '#2563eb', borderWidth: 2, tension: 0.2 }] },
             options: { responsive: true, maintainAspectRatio: false, scales: { x: { grid: { color: '#e2e8f0' } }, y: { grid: { color: '#e2e8f0' }, beginAtZero: true } } }
         });
 
         new Chart(document.getElementById('chartRetries').getContext('2d'), {
             type: 'line',
-            data: {
-                labels: labelsTime,
-                datasets: [
-                    { label: 'Call Retries / sec', data: [0.005, 0.028, 0.048, 0.050, 0.020, 0.005, 0.000], borderColor: '#10b981', borderWidth: 2, tension: 0.2 },
-                    { label: 'Transaction Retries / sec', data: [0.000, 0.000, 0.005, 0.004, 0.002, 0.000, 0.000], borderColor: '#f59e0b', borderWidth: 2, tension: 0.2 }
-                ]
-            },
+            data: { labels: labelsTime, datasets: [{ label: 'Call Retries / sec', data: [0.005, 0.028, 0.048, 0.050, 0.020, 0.005, 0.000], borderColor: '#10b981', borderWidth: 2, tension: 0.2 }, { label: 'Transaction Retries / sec', data: [0.000, 0.000, 0.005, 0.004, 0.002, 0.000, 0.000], borderColor: '#f59e0b', borderWidth: 2, tension: 0.2 }] },
             options: { responsive: true, maintainAspectRatio: false, scales: { x: { grid: { color: '#e2e8f0' } }, y: { grid: { color: '#e2e8f0' }, beginAtZero: true } } }
         });
 
         new Chart(document.getElementById('chartTransitions').getContext('2d'), {
             type: 'line',
-            data: {
-                labels: labelsTime,
-                datasets: [
-                    { label: 'Investigating -> Blocked', data: [0.01, 0.03, 0.08, 0.09, 0.05, 0.02, 0.01], borderColor: '#ef4444', borderWidth: 2, tension: 0.2 },
-                    { label: 'Resolved / Closed', data: [0.01, 0.02, 0.04, 0.06, 0.08, 0.09, 0.10], borderColor: '#10b981', borderWidth: 2, tension: 0.2 }
-                ]
-            },
+            data: { labels: labelsTime, datasets: [{ label: 'Investigating -> Blocked', data: [0.01, 0.03, 0.08, 0.09, 0.05, 0.02, 0.01], borderColor: '#ef4444', borderWidth: 2, tension: 0.2 }, { label: 'Resolved / Closed', data: [0.01, 0.02, 0.04, 0.06, 0.08, 0.09, 0.10], borderColor: '#10b981', borderWidth: 2, tension: 0.2 }] },
             options: { responsive: true, maintainAspectRatio: false, scales: { x: { grid: { color: '#e2e8f0' } }, y: { grid: { color: '#e2e8f0' }, beginAtZero: true } } }
         });
 
         new Chart(document.getElementById('chartRiskScore').getContext('2d'), {
             type: 'line',
-            data: {
-                labels: labelsTime,
-                datasets: [
-                    { label: 'p50 Case Risk Score', data: [0.08, 0.12, 0.16, 0.18, 0.17, 0.18, 0.17], borderColor: '#f59e0b', borderWidth: 2, tension: 0.2 },
-                    { label: 'p95 Case Risk Score', data: [0.65, 0.72, 0.84, 0.88, 0.82, 0.85, 0.84], borderColor: '#ef4444', borderWidth: 2, tension: 0.2 }
-                ]
-            },
+            data: { labels: labelsTime, datasets: [{ label: 'p50 Case Risk Score', data: [0.08, 0.12, 0.16, 0.18, 0.17, 0.18, 0.17], borderColor: '#f59e0b', borderWidth: 2, tension: 0.2 }, { label: 'p95 Case Risk Score', data: [0.65, 0.72, 0.84, 0.88, 0.82, 0.85, 0.84], borderColor: '#ef4444', borderWidth: 2, tension: 0.2 }] },
             options: { responsive: true, maintainAspectRatio: false, scales: { x: { grid: { color: '#e2e8f0' } }, y: { grid: { color: '#e2e8f0' }, beginAtZero: true } } }
         });
 
-        // 🔥 Dynamic Live Polling & Factor Velocity Animation from main.py
+        // Dynamic Live Polling & Factor Velocity Animation
         async function fetchLiveMetrics() {
             try {
                 const res = await fetch('/api/v1/hitl/pending');
@@ -887,31 +757,25 @@
             } catch(e) {}
         }
 
-        // Animate factor lines: High-impact factors move rapidly; low-impact factors move slowly
         setInterval(() => {
             fetchLiveMetrics();
 
-            // High Impact 1: Urgency Intent (Fast swing)
             const dsUrgency = factorChart.data.datasets[0].data;
             dsUrgency.shift();
             dsUrgency.push(88 + Math.floor(Math.random() * 12));
 
-            // High Impact 2: Velocity (Fast swing)
             const dsVel = factorChart.data.datasets[1].data;
             dsVel.shift();
             dsVel.push(85 + Math.floor(Math.random() * 14));
 
-            // Critical 3: Blocklist (High precision)
             const dsBlock = factorChart.data.datasets[2].data;
             dsBlock.shift();
             dsBlock.push(95 + Math.floor(Math.random() * 5));
 
-            // Medium 4: VOIP (Moderate swing)
             const dsVoip = factorChart.data.datasets[3].data;
             dsVoip.shift();
             dsVoip.push(62 + Math.floor(Math.random() * 6));
 
-            // Low Impact 5: Duration (Slow minor tick)
             const dsDur = factorChart.data.datasets[4].data;
             dsDur.shift();
             dsDur.push(15 + Math.floor(Math.random() * 3));
