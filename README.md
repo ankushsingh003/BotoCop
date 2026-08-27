@@ -118,8 +118,8 @@ Environment variables:
 
 | Variable | Default | Used by |
 |---|---|---|
-| `GROQ_API_KEY` | -- (required) | All four pipelines, both eval judges |
-| `GROQ_MODEL_NAME` | `llama-3.3-70b-versatile` | All LLM calls |
+| `GEMINI_API_KEY` | -- (required) | All four pipelines, both eval judges |
+| `GEMINI_MODEL_NAME` | `gemini-2.5-flash` | All LLM calls |
 | `CASE_DATABASE_URL` | `sqlite:///./backend/data/cases.db` | Case store -- point at Postgres in production |
 | `KAFKA_BOOTSTRAP_SERVERS` | `localhost:9092` | Kafka consumer/producer |
 | `KAFKA_TRANSACTION_TOPIC` / `_CALL_TOPIC` / `_TEXT_TOPIC` / `_VIDEO_TOPIC` | `fraud.{channel}.events` | Kafka topic names |
@@ -165,21 +165,27 @@ Grafana at `localhost:3000` (admin/admin) comes pre-provisioned with a dashboard
 PYTHONPATH=. pytest tests/ -v
 ```
 
-32 tests pass without any external dependency (no `GROQ_API_KEY`, no live Kafka/MinIO/Postgres broker needed) -- LLM calls, Kafka, and S3 are mocked or dependency-injected where the sandbox this was built in had no network path to them. Real, unmocked coverage includes:
-- The full case-linking to cross-channel escalation flow through the actual WebSocket route
-- A real trained Isolation Forest model scoring real synthetic fraud vs. normal transactions
-- A real local PySpark session doing actual distributed feature engineering and retraining
-- The eval harness's scoring/tracking/judge-alignment logic
+32 tests pass without any external dependency (no `GEMINI_API_KEY`, no live Kafka/MinIO/Postgres broker needed) -- LLM calls, Kafka, and S3 are mocked or dependency-injected where the sandbox this was built in had no network path to them. Real, unmocked coverage includes:
+- RAG retrieval against local Chroma vector stores (finance/AML rulebooks).
+- PostgreSQL case store reads, writes, and status transitions via SQLAlchemy against an in-memory SQLite backend.
+- PromQL counter/histogram metric emissions.
+- End-to-end WebSocket `/ws/events` message roundtrips and multi-event case linking.
 
-`tests/test_compliance.py` is the original video-pipeline test suite (unmodified) -- it needs `yt-dlp` and network access and isn't run by default in this environment.
-
-## Offline eval harness
-
+To run the test suite locally:
 ```bash
-PYTHONPATH=. python -m backend.eval.run_eval    # requires GROQ_API_KEY
+pytest
 ```
 
-Runs all four pipelines against the 12-example golden dataset (including borderline cases designed to catch pipelines that are just keyword-matching), reports precision/recall/F1 per channel, appends a summary to `backend/eval/eval_runs.jsonl` for tracking across runs, and separately reports whether the eval judge's confidence actually correlates with correctness.
+To run the offline golden-dataset evaluation harness against live Gemini models:
+```bash
+PYTHONPATH=. python -m backend.eval.run_eval    # requires GEMINI_API_KEY
+```
+
+---
+
+## Known Limits
+
+- **This was built and tested against mocked/local infrastructure** (no live Gemini, Kafka, MinIO, or Postgres in the sandbox it was built in) -- deploying against the real services is the next real-world test, not yet done.rd-matching), reports precision/recall/F1 per channel, appends a summary to `backend/eval/eval_runs.jsonl` for tracking across runs, and separately reports whether the eval judge's confidence actually correlates with correctness.
 
 ## Known limitations
 
