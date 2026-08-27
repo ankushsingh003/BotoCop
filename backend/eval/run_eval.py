@@ -15,8 +15,8 @@ Two separate questions this answers, deliberately kept distinct:
    *correct*; this does.
 
 Run: python -m backend.eval.run_eval
-Requires GROQ_API_KEY (all four pipelines are LLM-based) -- not runnable
-in this sandbox, which has no network path to Groq's API. See
+Requires GEMINI_API_KEY (all four pipelines are LLM-based) -- not runnable
+in this sandbox, which has no network path to Gemini's API. See
 tests/test_eval_harness.py for coverage of the scoring/tracking logic
 itself using injected fake pipelines, which needs no network access.
 """

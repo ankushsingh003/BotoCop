@@ -12,7 +12,7 @@ from backend.src.graph.nodes import visual_compliance_node, merge_results_node
 from backend.src.services.video_index import select_keyframes
 
 
-@patch("backend.src.graph.nodes.ChatGroq")
+@patch("backend.src.pipelines.text_fraud.nodes.ChatGoogleGenerativeAI")
 def test_visual_compliance_node(mock_chat_groq):
     """
     Test visual_compliance_node with a mocked Groq vision response.
@@ -213,7 +213,7 @@ def test_api_audit_endpoint():
         assert data2["total_violations"] == 2
 
 
-@patch("backend.src.graph.nodes.ChatGroq")
+@patch("backend.src.pipelines.text_fraud.nodes.ChatGoogleGenerativeAI")
 def test_classify_domain_node(mock_chat_groq):
     """
     Test classify_domain_node with a mocked LLM classification response.
@@ -235,7 +235,7 @@ def test_classify_domain_node(mock_chat_groq):
     assert result["domain"] == "finance"
 
 
-@patch("backend.src.graph.nodes.ChatGroq")
+@patch("backend.src.pipelines.text_fraud.nodes.ChatGoogleGenerativeAI")
 @patch("backend.src.rag.retriever.RuleRetriever")
 def test_auto_content_node_routing(mock_retriever_class, mock_chat_groq):
     """

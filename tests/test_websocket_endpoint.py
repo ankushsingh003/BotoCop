@@ -2,12 +2,11 @@
 End-to-end test of /ws/events using synthetic data.
 
 Both the transaction (RAG + LLM) and call (LLM) pipelines require a real
-GROQ_API_KEY and network access to Groq's API, neither of which is
-available in this sandbox (api.groq.com isn't in the network allowlist
-here). Both pipelines are mocked so this test proves the WebSocket ->
+GEMINI_API_KEY and network access to Google's API, neither of which is
+available in this sandbox. Both pipelines are mocked so this test proves the WebSocket ->
 orchestrator -> case-layer -> eval-loop wiring and the cross-channel
 escalation contract are correct. In your own environment with
-GROQ_API_KEY set, swap the monkeypatched functions for the real
+GEMINI_API_KEY set, swap the monkeypatched functions for the real
 run_transaction_fraud_pipeline / run_call_fraud_pipeline to run this
 fully unmocked.
 """

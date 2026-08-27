@@ -1,6 +1,6 @@
 """
 Tests the eval harness's scoring, aggregation, and run-log logic using
-injected fake pipelines/judges -- deliberately independent of GROQ_API_KEY
+injected fake pipelines/judges -- deliberately independent of GEMINI_API_KEY
 and network access, since this is pure logic that shouldn't need a real
 LLM call to verify it's correct. Running the harness against the REAL
 pipelines (backend/eval/run_eval.py __main__) requires a real API key
