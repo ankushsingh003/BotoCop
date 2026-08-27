@@ -1,8 +1,10 @@
 import time
 import logging
 import json
-import os
+os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 from dotenv import load_dotenv
+
 
 from sqlalchemy import create_engine, Column, String, Text, Boolean
 from sqlalchemy.orm import declarative_base, sessionmaker
