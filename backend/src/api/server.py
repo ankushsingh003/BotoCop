@@ -52,10 +52,27 @@ def _startup_checks():
 from typing import Optional
 
 
+from fastapi.responses import HTMLResponse, FileResponse
+from pathlib import Path
+
+STATIC_DIR = Path(__file__).resolve().parent / "static"
+
+
+@app.get("/analytics", response_class=HTMLResponse)
+@app.get("/dashboard", response_class=HTMLResponse)
+async def serve_analytics_dashboard():
+    """Serve live BotoCop Telephony Fraud Engine Analytics & Grafana Dashboard UI."""
+    analytics_file = STATIC_DIR / "analytics.html"
+    if analytics_file.exists():
+        return FileResponse(analytics_file)
+    return HTMLResponse("<h2>Analytics Dashboard HTML loading...</h2>")
+
+
 @app.get("/health")
 @app.get("/api/health")
 async def health():
     return {"status": "healthy"}
+
 
 
 @app.get("/metrics")

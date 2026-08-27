@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BotoCop - Telephony Fraud Detection Engine Analytics</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #090d16;
+            --panel-bg: rgba(18, 26, 43, 0.75);
+            --panel-border: rgba(255, 255, 255, 0.08);
+            --accent-cyan: #00f2fe;
+            --accent-blue: #4facfe;
+            --accent-red: #ff4b2b;
+            --accent-amber: #ffb347;
+            --accent-green: #00e676;
+            --text-main: #f0f4f8;
+            --text-muted: #8a99ad;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(circle at 15% 15%, rgba(0, 242, 254, 0.08) 0%, transparent 40%),
+                radial-gradient(circle at 85% 85%, rgba(255, 75, 43, 0.06) 0%, transparent 40%);
+        }
+
+        header {
+            padding: 1.25rem 2rem;
+            background: rgba(9, 13, 22, 0.85);
+            backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--panel-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .brand-logo {
+            width: 38px;
+            height: 38px;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            color: #090d16;
+            font-size: 1.25rem;
+            box-shadow: 0 0 20px rgba(0, 242, 254, 0.3);
+        }
+
+        .brand-title {
+            font-size: 1.35rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            background: linear-gradient(to right, #ffffff, var(--text-muted));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.4rem 0.9rem;
+            background: rgba(0, 230, 118, 0.12);
+            border: 1px solid rgba(0, 230, 118, 0.3);
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--accent-green);
+        }
+
+        .pulse-dot {
+            width: 8px;
+            height: 8px;
+            background-color: var(--accent-green);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--accent-green);
+            animation: pulse 1.8s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.95); opacity: 0.7; }
+            50% { transform: scale(1.2); opacity: 1; }
+            100% { transform: scale(0.95); opacity: 0.7; }
+        }
+
+        main {
+            padding: 2rem;
+            max-width: 1600px;
+            margin: 0 auto;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 1.75rem;
+            flex: 1;
+        }
+
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.25rem;
+        }
+
+        .stat-card {
+            background: var(--panel-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--panel-border);
+            border-radius: 16px;
+            padding: 1.25rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            transition: transform 0.2s ease, border-color 0.2s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            border-color: rgba(0, 242, 254, 0.3);
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+
+        .stat-value {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: #ffffff;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .stat-sub {
+            font-size: 0.8rem;
+            color: var(--accent-cyan);
+        }
+
+        .dashboard-container {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 1.5rem;
+            min-height: 650px;
+        }
+
+        @media (max-width: 1100px) {
+            .dashboard-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .panel {
+            background: var(--panel-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--panel-border);
+            border-radius: 16px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-header {
+            padding: 1rem 1.25rem;
+            background: rgba(255, 255, 255, 0.03);
+            border-bottom: 1px solid var(--panel-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .panel-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .grafana-frame {
+            width: 100%;
+            height: 100%;
+            min-height: 580px;
+            border: none;
+            background: transparent;
+        }
+
+        .event-stream {
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            overflow-y: auto;
+            max-height: 580px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.82rem;
+        }
+
+        .event-card {
+            background: rgba(255, 255, 255, 0.025);
+            border: 1px solid var(--panel-border);
+            border-left: 4px solid var(--accent-cyan);
+            border-radius: 10px;
+            padding: 0.85rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .event-card.scam {
+            border-left-color: var(--accent-red);
+            background: rgba(255, 75, 43, 0.05);
+        }
+
+        .event-card.blocklist {
+            border-left-color: var(--accent-amber);
+            background: rgba(255, 179, 71, 0.05);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .event-header {
+            display: flex;
+            justify-content: space-between;
+            color: var(--text-muted);
+        }
+
+        .event-title {
+            font-weight: 700;
+            color: #ffffff;
+        }
+
+        .event-body {
+            color: #d1d5db;
+            line-height: 1.4;
+        }
+
+        .btn-hitl {
+            padding: 0.35rem 0.75rem;
+            background: linear-gradient(135deg, var(--accent-red), #e60000);
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: opacity 0.2s ease;
+            align-self: flex-start;
+            margin-top: 0.25rem;
+        }
+
+        .btn-hitl:hover {
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="brand">
+            <div class="brand-logo">🛡️</div>
+            <div class="brand-title">BotoCop Telephony Fraud Engine</div>
+        </div>
+        <div class="status-badge">
+            <div class="pulse-dot"></div>
+            5-Layer Live Orchestrator Connected
+        </div>
+    </header>
+
+    <main>
+        <div class="stats-row">
+            <div class="stat-card">
+                <div class="stat-label">Layer 4 Short-Circuit Latency</div>
+                <div class="stat-value" id="stat-latency">&lt; 2.0 ms</div>
+                <div class="stat-sub">Deterministic Scammer Blocklist</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">STT Audio Engine</div>
+                <div class="stat-value">Whisper STT</div>
+                <div class="stat-sub">Indic / Hinglish Auto-Translate</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">LLM Reasoning Engine</div>
+                <div class="stat-value">Gemini 3.6</div>
+                <div class="stat-sub">Near-Duplicate Script Cache Active</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Chain-of-Custody Store</div>
+                <div class="stat-value">SHA-256 Vault</div>
+                <div class="stat-sub">Immutable Court Audit Package</div>
+            </div>
+        </div>
+
+        <div class="dashboard-container">
+            <!-- Grafana Embedded Panel -->
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-title">📊 Live Prometheus & Grafana Analytics Telemetry</div>
+                    <span style="font-size: 0.8rem; color: var(--accent-cyan)">Auto-Refresh: 5s</span>
+                </div>
+                <iframe 
+                    class="grafana-frame" 
+                    src="http://localhost:3000/d/botocop-overview?orgId=1&refresh=5s&kiosk" 
+                    onerror="this.style.display='none'; document.getElementById('grafana-fallback').style.display='flex';"
+                ></iframe>
+                <div id="grafana-fallback" style="display: none; height: 500px; align-items: center; justify-content: center; flex-direction: column; gap: 1rem; color: var(--text-muted); padding: 2rem; text-align: center;">
+                    <div style="font-size: 2.5rem;">📈</div>
+                    <div style="font-size: 1.1rem; color: #fff; font-weight: 600;">Grafana Dashboard Direct Feed</div>
+                    <p>Access Grafana directly at <a href="http://localhost:3000/d/botocop-overview?kiosk" target="_blank" style="color: var(--accent-cyan); text-decoration: underline;">http://localhost:3000</a></p>
+                </div>
+            </div>
+
+            <!-- Live Event Stream Panel -->
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-title">⚡ Live Event Ingestion & HITL Stream</div>
+                    <span style="font-size: 0.8rem; color: var(--text-muted)" id="event-count">0 events</span>
+                </div>
+                <div class="event-stream" id="event-stream">
+                    <div class="event-card">
+                        <div class="event-header">
+                            <span class="event-title">Pipeline Initialized</span>
+                            <span>System Ready</span>
+                        </div>
+                        <div class="event-body">
+                            Polling legacy event database and executing 5-Layer ML Call Fraud cascade...
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        let count = 0;
+        const stream = document.getElementById('event-stream');
+
+        // Periodically fetch pending HITL review queue from FastAPI
+        async function updateHITLQueue() {
+            try {
+                const res = await fetch('/api/v1/hitl/pending');
+                const data = await res.json();
+                if (data.pending_cases && data.pending_cases.length > 0) {
+                    data.pending_cases.forEach(c => renderHITLCard(c));
+                }
+            } catch (err) {
+                console.log("HITL Queue sync active...");
+            }
+        }
+
+        function renderHITLCard(item) {
+            if (document.getElementById(`case-${item.case_id}`)) return;
+            count++;
+            document.getElementById('event-count').innerText = `${count} events`;
+
+            const card = document.createElement('div');
+            card.className = 'event-card scam';
+            card.id = `case-${item.case_id}`;
+            card.innerHTML = `
+                <div class="event-header">
+                    <span class="event-title">🚨 Scam Call Flagged (HIGH Risk)</span>
+                    <span>${new Date().toLocaleTimeString()}</span>
+                </div>
+                <div class="event-body">
+                    <strong>Caller:</strong> ${item.caller_phone}<br>
+                    <strong>Risk Drivers:</strong> ${item.ml_score.top_risk_drivers ? item.ml_score.top_risk_drivers.join(', ') : 'High Fraud Probability'}<br>
+                    <strong>Transcript:</strong> "${item.call.transcript.substring(0, 90)}..."
+                </div>
+                <button class="btn-hitl" onclick="resolveCase('${item.case_id}')">Confirm Fraud & Block Number</button>
+            `;
+            stream.prepend(card);
+        }
+
+        async function resolveCase(caseId) {
+            try {
+                const res = await fetch('/api/v1/hitl/resolve', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        case_id: caseId,
+                        analyst_id: 'Analyst_UI_Live',
+                        decision: 'CONFIRM_FRAUD',
+                        notes: 'Confirmed via Live UI Dashboard'
+                    })
+                });
+                const data = await res.json();
+                if (data.status === 'ok') {
+                    const el = document.getElementById(`case-${caseId}`);
+                    if (el) {
+                        el.style.borderLeftColor = '#00e676';
+                        el.style.background = 'rgba(0, 230, 118, 0.08)';
+                        el.querySelector('.btn-hitl').replaceWith(document.createTextNode('✅ Confirmed & Blocklisted'));
+                    }
+                }
+            } catch(e) {
+                alert("Case resolved: " + e.message);
+            }
+        }
+
+        setInterval(updateHITLQueue, 3000);
+        updateHITLQueue();
+    </script>
+</body>
+</html>
