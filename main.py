@@ -68,12 +68,22 @@ import threading
 import uvicorn
 from backend.src.api.server import app
 
+import socket
+
+def is_port_in_use(port: int) -> bool:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        return s.connect_ex(('127.0.0.1', port)) == 0
+
 def start_metrics_server():
+    if is_port_in_use(8000):
+        logger.info("Prometheus metrics server is already active on port 8000.")
+        return
     try:
         logger.info("Starting Prometheus metrics API server on port 8000...")
         uvicorn.run(app, host="0.0.0.0", port=8000, log_level="warning")
     except Exception as e:
         logger.warning(f"Metrics server start notice: {e}")
+
 
 def run_db_polling_simulation():
     """
