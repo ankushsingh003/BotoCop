@@ -18,9 +18,12 @@ env/
 !.env.example
 *.local
 
-# Scratch / Test scripts
+# Scratch / Test / Demo scripts
 test_*.py
 tests/
+demo_*.py
+scripts/
+
 
 
 # Data/Database files
