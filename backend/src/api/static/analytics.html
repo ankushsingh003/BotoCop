@@ -26,6 +26,7 @@
             --accent-green: #10b981;
             --accent-amber: #f59e0b;
             --accent-purple: #8b5cf6;
+            --accent-cyan: #06b6d4;
         }
 
         * {
@@ -141,7 +142,7 @@
             border-radius: 50%;
         }
 
-        /* Main Workspace - Clean White & Grey */
+        /* Main Workspace */
         .workspace {
             flex: 1;
             display: flex;
@@ -216,7 +217,7 @@
             display: flex;
         }
 
-        /* Clean White Cards with Black/Grey Borders */
+        /* Clean White Cards */
         .card-row {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -261,14 +262,14 @@
             gap: 1.25rem;
         }
 
-        .layout-split {
+        .layout-grid-3x2 {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: repeat(2, 1fr);
             gap: 1.25rem;
         }
 
-        @media (max-width: 1024px) {
-            .layout-2col, .layout-split {
+        @media (max-width: 1100px) {
+            .layout-2col, .layout-grid-3x2 {
                 grid-template-columns: 1fr;
             }
         }
@@ -293,14 +294,14 @@
         }
 
         .panel-title {
-            font-size: 0.95rem;
+            font-size: 0.92rem;
             font-weight: 700;
             color: var(--text-dark);
         }
 
         .chart-wrapper {
             position: relative;
-            height: 250px;
+            height: 220px;
             width: 100%;
         }
 
@@ -335,10 +336,6 @@
             font-weight: 600;
             font-size: 0.85rem;
             cursor: pointer;
-        }
-
-        .btn-primary:hover {
-            opacity: 0.9;
         }
 
         .forensic-details {
@@ -450,10 +447,6 @@
             font-size: 0.78rem;
             font-weight: 600;
             cursor: pointer;
-        }
-
-        .btn-action:hover {
-            opacity: 0.9;
         }
     </style>
 </head>
@@ -673,24 +666,66 @@
                 </div>
             </div>
 
-            <!-- TAB 4: METRICS & TELEMETRY -->
+            <!-- TAB 4: METRICS & TELEMETRY (COMPLETE 6 GRAFANA CHARTS GRID) -->
             <div id="tab-metrics" class="tab-pane">
-                <div class="layout-split">
+                <div class="layout-grid-3x2">
+                    <!-- Chart 1: Events Processed / sec -->
                     <div class="panel">
                         <div class="panel-header">
-                            <div class="panel-title">Latency Distribution (p50 / p95)</div>
+                            <div class="panel-title">1. Events Processed / sec (by Channel)</div>
                         </div>
                         <div class="chart-wrapper">
-                            <canvas id="metricsLatencyChart"></canvas>
+                            <canvas id="chartEvents"></canvas>
                         </div>
                     </div>
 
+                    <!-- Chart 2: Violations Detected / sec -->
                     <div class="panel">
                         <div class="panel-header">
-                            <div class="panel-title">Fraud Risk Score Distribution</div>
+                            <div class="panel-title">2. Violations Detected / sec (by Severity)</div>
                         </div>
                         <div class="chart-wrapper">
-                            <canvas id="metricsRiskChart"></canvas>
+                            <canvas id="chartViolations"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Chart 3: Pipeline Duration p50 / p95 -->
+                    <div class="panel">
+                        <div class="panel-header">
+                            <div class="panel-title">3. Pipeline Duration (p50 / p95 by Channel)</div>
+                        </div>
+                        <div class="chart-wrapper">
+                            <canvas id="chartDuration"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Chart 4: Eval-Loop Retries / sec -->
+                    <div class="panel">
+                        <div class="panel-header">
+                            <div class="panel-title">4. Eval-Loop Retries / sec (by Channel)</div>
+                        </div>
+                        <div class="chart-wrapper">
+                            <canvas id="chartRetries"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Chart 5: Case Status Transitions -->
+                    <div class="panel">
+                        <div class="panel-header">
+                            <div class="panel-title">5. Case Status Transitions / sec</div>
+                        </div>
+                        <div class="chart-wrapper">
+                            <canvas id="chartTransitions"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Chart 6: Cross-Channel Case Risk Score -->
+                    <div class="panel">
+                        <div class="panel-header">
+                            <div class="panel-title">6. Cross-Channel Case Risk Score (p50 / p95)</div>
+                        </div>
+                        <div class="chart-wrapper">
+                            <canvas id="chartRiskScore"></canvas>
                         </div>
                     </div>
                 </div>
@@ -752,7 +787,7 @@
                 'overview': ['Overview', 'Real-time Telephony Fraud Intelligence Console'],
                 'search': ['Call Search & Forensic Audit', 'Inspect individual call records, transcripts, and SHA-256 evidence packages'],
                 'pipeline': ['Pipeline Architecture', 'Performance and latency breakdown across all 5 defense layers'],
-                'metrics': ['Metrics & Telemetry', 'System response times and risk score distributions'],
+                'metrics': ['Metrics & Telemetry (Grafana Complete Suite)', 'Full 6-panel Prometheus & Grafana APM telemetry metrics'],
                 'alerts': ['Alerts & Review', 'Human-in-the-loop analyst verification console']
             };
 
@@ -767,12 +802,13 @@
             btn.classList.add('active');
         }
 
-        // Overview Multi-color Line Chart
-        const ctxOv = document.getElementById('overviewChart').getContext('2d');
-        new Chart(ctxOv, {
+        const labelsTime = ['03:20', '03:25', '03:30', '03:35', '03:40', '03:45', '03:50'];
+
+        // Overview Chart
+        new Chart(document.getElementById('overviewChart').getContext('2d'), {
             type: 'line',
             data: {
-                labels: ['12m ago', '10m ago', '8m ago', '6m ago', '4m ago', '2m ago', 'Now'],
+                labels: labelsTime,
                 datasets: [
                     { label: 'Total Monitored Calls', data: [120, 135, 140, 165, 180, 210, 240], borderColor: '#2563eb', backgroundColor: 'rgba(37, 99, 235, 0.05)', borderWidth: 2.5, tension: 0.2, fill: true },
                     { label: 'Flagged Scam Calls', data: [10, 15, 12, 25, 30, 45, 52], borderColor: '#ef4444', backgroundColor: 'rgba(239, 68, 68, 0.05)', borderWidth: 2.5, tension: 0.2, fill: true },
@@ -780,50 +816,85 @@
                     { label: 'Layer 4 Blocklist Intercepts', data: [8, 10, 4, 13, 12, 23, 24], borderColor: '#10b981', borderWidth: 2.5, tension: 0.2, fill: false }
                 ]
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { position: 'top', labels: { boxWidth: 12, font: { weight: 600 } } } },
-                scales: {
-                    x: { grid: { color: '#e2e8f0' } },
-                    y: { grid: { color: '#e2e8f0' }, beginAtZero: true }
-                }
-            }
+            options: { responsive: true, maintainAspectRatio: false, scales: { x: { grid: { color: '#e2e8f0' } }, y: { grid: { color: '#e2e8f0' }, beginAtZero: true } } }
         });
 
-        // Latency Chart - Multi-color
-        const ctxLat = document.getElementById('metricsLatencyChart').getContext('2d');
-        new Chart(ctxLat, {
+        // 1. Events Processed / sec
+        new Chart(document.getElementById('chartEvents').getContext('2d'), {
             type: 'line',
             data: {
-                labels: ['03:20', '03:22', '03:24', '03:26', '03:28', '03:30'],
+                labels: labelsTime,
                 datasets: [
-                    { label: 'Layer 4 Blocklist (ms)', data: [1.8, 1.7, 1.9, 1.8, 1.6, 1.8], borderColor: '#10b981', borderWidth: 2.5, tension: 0.1 },
-                    { label: 'Script Cache Hit (ms)', data: [2.5, 2.3, 2.6, 2.4, 2.2, 2.5], borderColor: '#8b5cf6', borderWidth: 2.5, tension: 0.1 },
-                    { label: 'Full Pipeline p95 (ms)', data: [8.5, 8.2, 7.9, 8.4, 8.1, 7.8], borderColor: '#2563eb', borderWidth: 2.5, tension: 0.1 }
+                    { label: 'Call Channel', data: [0.005, 0.012, 0.025, 0.024, 0.010, 0.008, 0.010], borderColor: '#10b981', borderWidth: 2, tension: 0.2 },
+                    { label: 'Transaction Channel', data: [0.001, 0.001, 0.002, 0.002, 0.001, 0.001, 0.002], borderColor: '#f59e0b', borderWidth: 2, tension: 0.2 }
                 ]
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: { x: { grid: { color: '#e2e8f0' } }, y: { grid: { color: '#e2e8f0' }, beginAtZero: true } }
-            }
+            options: { responsive: true, maintainAspectRatio: false, scales: { x: { grid: { color: '#e2e8f0' } }, y: { grid: { color: '#e2e8f0' }, beginAtZero: true } } }
         });
 
-        // Risk Chart - Multi-color bars
-        const ctxRisk = document.getElementById('metricsRiskChart').getContext('2d');
-        new Chart(ctxRisk, {
-            type: 'bar',
+        // 2. Violations Detected / sec
+        new Chart(document.getElementById('chartViolations').getContext('2d'), {
+            type: 'line',
             data: {
-                labels: ['Low Risk', 'Medium Risk', 'High Fraud'],
-                datasets: [{ label: 'Cases', data: [820, 145, 95], backgroundColor: ['#10b981', '#f59e0b', '#ef4444'], borderRadius: 6 }]
+                labels: labelsTime,
+                datasets: [
+                    { label: 'Critical Violations', data: [0, 0.001, 0.0035, 0.0036, 0.0037, 0, 0], borderColor: '#ef4444', borderWidth: 2, tension: 0.1 },
+                    { label: 'High Risk Violations', data: [0.001, 0.002, 0.004, 0.005, 0.004, 0.002, 0.001], borderColor: '#f59e0b', borderWidth: 2, tension: 0.1 }
+                ]
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: { x: { grid: { display: false } }, y: { grid: { color: '#e2e8f0' }, beginAtZero: true } }
-            }
+            options: { responsive: true, maintainAspectRatio: false, scales: { x: { grid: { color: '#e2e8f0' } }, y: { grid: { color: '#e2e8f0' }, beginAtZero: true } } }
+        });
+
+        // 3. Pipeline Duration p50 / p95
+        new Chart(document.getElementById('chartDuration').getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: labelsTime,
+                datasets: [
+                    { label: 'p50 Call Channel (s)', data: [7.5, 5.2, 8.1, 8.4, 6.2, 7.8, 8.1], borderColor: '#10b981', borderWidth: 2, tension: 0.2 },
+                    { label: 'p95 Call Channel (s)', data: [9.8, 9.6, 9.9, 10.0, 9.9, 10.0, 10.0], borderColor: '#2563eb', borderWidth: 2, tension: 0.2 }
+                ]
+            },
+            options: { responsive: true, maintainAspectRatio: false, scales: { x: { grid: { color: '#e2e8f0' } }, y: { grid: { color: '#e2e8f0' }, beginAtZero: true } } }
+        });
+
+        // 4. Eval-Loop Retries / sec
+        new Chart(document.getElementById('chartRetries').getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: labelsTime,
+                datasets: [
+                    { label: 'Call Retries / sec', data: [0.005, 0.028, 0.048, 0.050, 0.020, 0.005, 0.000], borderColor: '#10b981', borderWidth: 2, tension: 0.2 },
+                    { label: 'Transaction Retries / sec', data: [0.000, 0.000, 0.005, 0.004, 0.002, 0.000, 0.000], borderColor: '#f59e0b', borderWidth: 2, tension: 0.2 }
+                ]
+            },
+            options: { responsive: true, maintainAspectRatio: false, scales: { x: { grid: { color: '#e2e8f0' } }, y: { grid: { color: '#e2e8f0' }, beginAtZero: true } } }
+        });
+
+        // 5. Case Status Transitions
+        new Chart(document.getElementById('chartTransitions').getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: labelsTime,
+                datasets: [
+                    { label: 'Investigating -> Blocked', data: [0.01, 0.03, 0.08, 0.09, 0.05, 0.02, 0.01], borderColor: '#ef4444', borderWidth: 2, tension: 0.2 },
+                    { label: 'Resolved / Closed', data: [0.02, 0.04, 0.06, 0.07, 0.08, 0.09, 0.10], borderColor: '#10b981', borderWidth: 2, tension: 0.2 }
+                ]
+            },
+            options: { responsive: true, maintainAspectRatio: false, scales: { x: { grid: { color: '#e2e8f0' } }, y: { grid: { color: '#e2e8f0' }, beginAtZero: true } } }
+        });
+
+        // 6. Cross-Channel Case Risk Score
+        new Chart(document.getElementById('chartRiskScore').getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: labelsTime,
+                datasets: [
+                    { label: 'p50 Case Risk Score', data: [0.08, 0.12, 0.16, 0.18, 0.17, 0.18, 0.17], borderColor: '#f59e0b', borderWidth: 2, tension: 0.2 },
+                    { label: 'p95 Case Risk Score', data: [0.65, 0.72, 0.84, 0.88, 0.82, 0.85, 0.84], borderColor: '#ef4444', borderWidth: 2, tension: 0.2 }
+                ]
+            },
+            options: { responsive: true, maintainAspectRatio: false, scales: { x: { grid: { color: '#e2e8f0' } }, y: { grid: { color: '#e2e8f0' }, beginAtZero: true } } }
         });
 
         function runSearch() {
