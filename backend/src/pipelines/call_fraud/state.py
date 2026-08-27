@@ -11,5 +11,7 @@ class CallFraudState(TypedDict):
 
     violations: List[Dict[str, Any]]
     final_status: str
+    is_short_circuited: Optional[bool]
     error: List[str]
+
 

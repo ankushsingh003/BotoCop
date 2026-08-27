@@ -2,6 +2,7 @@ from langgraph.graph import StateGraph, END
 
 from backend.src.pipelines.call_fraud.state import CallFraudState
 from backend.src.pipelines.call_fraud.nodes import (
+    check_blocklist_node,
     extract_features_node,
     ml_risk_scoring_node,
     identity_correlation_node,
@@ -9,21 +10,38 @@ from backend.src.pipelines.call_fraud.nodes import (
 )
 
 
+def should_short_circuit(state: CallFraudState) -> str:
+    """Route directly to END if caller is in known scam blocklist."""
+    if state.get("is_short_circuited"):
+        return "short_circuit"
+    return "continue"
+
+
 def create_call_fraud_graph():
     graph_builder = StateGraph(CallFraudState)
 
+    graph_builder.add_node("check_blocklist", check_blocklist_node)
     graph_builder.add_node("extract_features", extract_features_node)
     graph_builder.add_node("ml_risk_scoring", ml_risk_scoring_node)
     graph_builder.add_node("identity_correlation", identity_correlation_node)
     graph_builder.add_node("audit_call", audit_call_node)
 
-    graph_builder.set_entry_point("extract_features")
+    graph_builder.set_entry_point("check_blocklist")
+    graph_builder.add_conditional_edges(
+        "check_blocklist",
+        should_short_circuit,
+        {
+            "short_circuit": END,
+            "continue": "extract_features",
+        }
+    )
     graph_builder.add_edge("extract_features", "ml_risk_scoring")
     graph_builder.add_edge("ml_risk_scoring", "identity_correlation")
     graph_builder.add_edge("identity_correlation", "audit_call")
     graph_builder.add_edge("audit_call", END)
 
     return graph_builder.compile()
+
 
 
 call_fraud_graph = create_call_fraud_graph()

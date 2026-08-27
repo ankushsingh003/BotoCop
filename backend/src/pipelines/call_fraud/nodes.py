@@ -28,12 +28,47 @@ class CallAuditModel(BaseModel):
     final_status: str = Field(description="success, warning, or failed")
 
 
+from backend.src.pipelines.call_fraud.blocklist import get_scam_blocklist
+
+
+def check_blocklist_node(state: CallFraudState) -> Dict[str, Any]:
+    """Node 0: Fast O(1) Layer 4 Known-Bad Number Blocklist lookup for deterministic short-circuiting."""
+    call = state.get("call") or {}
+    caller_phone = call.get("caller_phone") or call.get("phone_number") or ""
+
+    is_blocked, block_info = get_scam_blocklist().check_blocklist(caller_phone)
+    if is_blocked:
+        logger.warning(f"CRITICAL SHORT-CIRCUIT: Caller {caller_phone} is in known scam blocklist ({block_info['source']})")
+        ml_score = {
+            "fraud_probability": 1.0,
+            "fraud_percentage": 100.0,
+            "risk_level": "CRITICAL",
+            "recommended_action": "BLOCK_CALL_AND_FREEZE_ACCOUNT",
+            "top_risk_drivers": [f"Known Scam Number Blocklist (Source: {block_info['source']})"],
+            "model_type": "Deterministic_Blocklist",
+        }
+        violations = [{
+            "category": "Known_Scammer_Blocklist",
+            "description": f"Caller phone matched verified cybercrime scam database ({block_info['source']}: {block_info['reason']})",
+            "severity": "critical",
+            "suggestion": "Block number across carrier gateway and alert user immediately"
+        }]
+        return {
+            "is_short_circuited": True,
+            "ml_score": ml_score,
+            "violations": violations,
+            "final_status": "failed"
+        }
+    return {"is_short_circuited": False}
+
+
 def extract_features_node(state: CallFraudState) -> Dict[str, Any]:
     """Node 1: Extract automated ML feature vector from incoming call metadata & transcript."""
     call = state.get("call") or {}
     logger.info("Extracting ML call features...")
     features = extract_call_features(call)
     return {"features": features.model_dump()}
+
 
 
 def ml_risk_scoring_node(state: CallFraudState) -> Dict[str, Any]:
