@@ -26,6 +26,8 @@ FINANCIAL_DEMAND_KEYWORDS = [
 ]
 
 
+from backend.src.pipelines.call_fraud.velocity_analyzer import get_velocity_analyzer
+
 class CallFeatures(BaseModel):
     urgency_score: float = Field(description="Normalized urgency/fear tactic frequency (0 to 1)")
     otp_request_detected: int = Field(description="1 if OTP/credential request detected, else 0")
@@ -34,6 +36,9 @@ class CallFeatures(BaseModel):
     is_spoof_suspected: int = Field(description="1 if caller phone number pattern suggests spoofing, else 0")
     stir_shaken_risk: float = Field(description="STIR/SHAKEN carrier attestation risk score (0.0 for Attestation A, 0.8 for Gateway C, 1.0 for Failed)")
     is_voip_line: int = Field(description="1 if line type is VOIP/non-fixed VOIP (high scam probability), else 0")
+    fanout_ratio_1h: float = Field(description="Ratio of distinct customer accounts targeted to total calls in past 1h (0.0 to 1.0)")
+    call_velocity_1h: float = Field(description="Number of call attempts by caller in past 1h")
+    cross_account_target_count: int = Field(description="Lifetime count of distinct customer account IDs targeted")
     call_duration_seconds: float = Field(description="Call duration in seconds")
     complaint_history_count: int = Field(description="Number of prior complaints linked to caller phone")
     off_hours_call: int = Field(description="1 if call placed outside standard hours (9am-6pm)")
@@ -48,6 +53,9 @@ class CallFeatures(BaseModel):
             float(self.is_spoof_suspected),
             self.stir_shaken_risk,
             float(self.is_voip_line),
+            self.fanout_ratio_1h,
+            min(self.call_velocity_1h / 10.0, 1.0),  # normalized velocity (capped at 10 calls/hr)
+            min(float(self.cross_account_target_count) / 5.0, 1.0),  # normalized cross-account targets
             self.call_duration_seconds / 600.0,  # normalized duration (up to ~10 mins)
             float(self.complaint_history_count),
             float(self.off_hours_call),
@@ -63,10 +71,14 @@ class CallFeatures(BaseModel):
             "is_spoof_suspected",
             "stir_shaken_risk",
             "is_voip_line",
+            "fanout_ratio_1h",
+            "call_velocity_1h_normalized",
+            "cross_account_target_count",
             "call_duration_normalized",
             "complaint_history_count",
             "off_hours_call",
         ]
+
 
 
 
@@ -123,6 +135,10 @@ def extract_call_features(call_event: Dict[str, Any]) -> CallFeatures:
     line_type = str(call_event.get("line_type") or call_event.get("carrier_line_type") or "").upper()
     is_voip_line = 1 if ("VOIP" in line_type or "SKYPE" in line_type or "TWILIO" in line_type) else 0
 
+    # Layer 3 Velocity & Fan-out Analysis
+    customer_id = call_event.get("linked_account_id") or call_event.get("customer_id") or call_event.get("account_id") or ""
+    velocity_metrics = get_velocity_analyzer().record_and_analyze(caller_phone, customer_id)
+
     # Off-hours indicator (before 8 AM or after 8 PM)
     off_hours = 1 if (hour < 8 or hour >= 20) else 0
 
@@ -134,8 +150,12 @@ def extract_call_features(call_event: Dict[str, Any]) -> CallFeatures:
         is_spoof_suspected=is_spoof,
         stir_shaken_risk=stir_shaken_risk,
         is_voip_line=is_voip_line,
+        fanout_ratio_1h=velocity_metrics["fanout_ratio_1h"],
+        call_velocity_1h=float(velocity_metrics["call_velocity_1h"]),
+        cross_account_target_count=velocity_metrics["cross_account_target_count"],
         call_duration_seconds=duration,
         complaint_history_count=complaints,
         off_hours_call=off_hours,
     )
+
 

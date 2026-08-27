@@ -27,7 +27,7 @@ class CallFraudMLModel:
         np.random.seed(42)
         n_samples = 600
 
-        # Features: [urgency, otp_flag, impersonation, fin_demand, is_spoof, stir_shaken_risk, is_voip_line, duration_norm, complaints, off_hours]
+        # Features: [urgency, otp_flag, impersonation, fin_demand, is_spoof, stir_shaken_risk, is_voip_line, fanout_ratio, velocity_norm, cross_acc_norm, duration_norm, complaints, off_hours]
         X = []
         y = []
 
@@ -41,10 +41,13 @@ class CallFraudMLModel:
                 is_spoof = 0 if np.random.rand() > 0.05 else 1
                 stir_shaken = 0.0 if np.random.rand() > 0.1 else 0.3  # Mostly Attestation A/B
                 is_voip = 0 if np.random.rand() > 0.1 else 1  # Mobile/Landline
+                fanout = np.random.uniform(0.0, 0.2)  # Low fan-out (calling 1 target repeatedly)
+                velocity = np.random.uniform(0.0, 0.2)  # Low velocity
+                cross_acc = np.random.uniform(0.0, 0.2)  # Single account target
                 dur = np.random.uniform(0.2, 1.0)
                 complaints = 0 if np.random.rand() > 0.9 else 0
                 off_hours = 0 if np.random.rand() > 0.2 else 1
-                X.append([urgency, otp, impersonation, fin_demand, is_spoof, stir_shaken, is_voip, dur, complaints, off_hours])
+                X.append([urgency, otp, impersonation, fin_demand, is_spoof, stir_shaken, is_voip, fanout, velocity, cross_acc, dur, complaints, off_hours])
                 y.append(0)
             # Fraudulent vishing call sample
             else:
@@ -55,11 +58,15 @@ class CallFraudMLModel:
                 is_spoof = 1 if np.random.rand() > 0.4 else 0
                 stir_shaken = np.random.choice([0.8, 1.0])  # Gateway C or Failed PASSporT
                 is_voip = 1 if np.random.rand() > 0.3 else 0  # High VOIP ratio
+                fanout = np.random.uniform(0.6, 1.0)  # High fan-out ratio (boiler room burst)
+                velocity = np.random.uniform(0.5, 1.0)  # High velocity
+                cross_acc = np.random.uniform(0.4, 1.0)  # Multi-account targeted
                 dur = np.random.uniform(0.05, 0.5)
                 complaints = np.random.randint(1, 8)
                 off_hours = 1 if np.random.rand() > 0.4 else 0
-                X.append([urgency, otp, impersonation, fin_demand, is_spoof, stir_shaken, is_voip, dur, complaints, off_hours])
+                X.append([urgency, otp, impersonation, fin_demand, is_spoof, stir_shaken, is_voip, fanout, velocity, cross_acc, dur, complaints, off_hours])
                 y.append(1)
+
 
 
         X = np.array(X)
