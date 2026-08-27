@@ -32,6 +32,8 @@ class CallFeatures(BaseModel):
     impersonation_score: float = Field(description="Normalized authority impersonation indicator (0 to 1)")
     financial_demand_score: float = Field(description="Normalized financial transfer/payment demand score (0 to 1)")
     is_spoof_suspected: int = Field(description="1 if caller phone number pattern suggests spoofing, else 0")
+    stir_shaken_risk: float = Field(description="STIR/SHAKEN carrier attestation risk score (0.0 for Attestation A, 0.8 for Gateway C, 1.0 for Failed)")
+    is_voip_line: int = Field(description="1 if line type is VOIP/non-fixed VOIP (high scam probability), else 0")
     call_duration_seconds: float = Field(description="Call duration in seconds")
     complaint_history_count: int = Field(description="Number of prior complaints linked to caller phone")
     off_hours_call: int = Field(description="1 if call placed outside standard hours (9am-6pm)")
@@ -44,6 +46,8 @@ class CallFeatures(BaseModel):
             self.impersonation_score,
             self.financial_demand_score,
             float(self.is_spoof_suspected),
+            self.stir_shaken_risk,
+            float(self.is_voip_line),
             self.call_duration_seconds / 600.0,  # normalized duration (up to ~10 mins)
             float(self.complaint_history_count),
             float(self.off_hours_call),
@@ -57,10 +61,13 @@ class CallFeatures(BaseModel):
             "impersonation_score",
             "financial_demand_score",
             "is_spoof_suspected",
+            "stir_shaken_risk",
+            "is_voip_line",
             "call_duration_normalized",
             "complaint_history_count",
             "off_hours_call",
         ]
+
 
 
 def extract_call_features(call_event: Dict[str, Any]) -> CallFeatures:
@@ -96,6 +103,26 @@ def extract_call_features(call_event: Dict[str, Any]) -> CallFeatures:
     elif caller_phone.startswith("+91") and len(re.sub(r"\D", "", caller_phone)) not in (12, 10):
         is_spoof = 1
 
+    # STIR/SHAKEN attestation level parsing
+
+    # Attestation A (Full) = 0.0 risk, B (Partial) = 0.3, C (Gateway) = 0.8, None/Failed = 1.0
+    attestation = str(call_event.get("stir_shaken_attestation") or call_event.get("attestation_level") or "").upper()
+    if attestation in ["A", "FULL", "FULL_A"]:
+        stir_shaken_risk = 0.0
+    elif attestation in ["B", "PARTIAL", "PARTIAL_B"]:
+        stir_shaken_risk = 0.3
+    elif attestation in ["C", "GATEWAY", "GATEWAY_C"]:
+        stir_shaken_risk = 0.8
+    elif attestation in ["FAILED", "NONE", "INVALID"]:
+        stir_shaken_risk = 1.0
+    else:
+        # Default unverified legacy trunk
+        stir_shaken_risk = 0.5 if is_spoof else 0.2
+
+    # Line type parsing (VOIP vs. Mobile/Landline)
+    line_type = str(call_event.get("line_type") or call_event.get("carrier_line_type") or "").upper()
+    is_voip_line = 1 if ("VOIP" in line_type or "SKYPE" in line_type or "TWILIO" in line_type) else 0
+
     # Off-hours indicator (before 8 AM or after 8 PM)
     off_hours = 1 if (hour < 8 or hour >= 20) else 0
 
@@ -105,7 +132,10 @@ def extract_call_features(call_event: Dict[str, Any]) -> CallFeatures:
         impersonation_score=round(impersonation_score, 4),
         financial_demand_score=round(financial_demand_score, 4),
         is_spoof_suspected=is_spoof,
+        stir_shaken_risk=stir_shaken_risk,
+        is_voip_line=is_voip_line,
         call_duration_seconds=duration,
         complaint_history_count=complaints,
         off_hours_call=off_hours,
     )
+

@@ -27,7 +27,7 @@ class CallFraudMLModel:
         np.random.seed(42)
         n_samples = 600
 
-        # Features: [urgency, otp_flag, impersonation, fin_demand, is_spoof, duration_norm, complaints, off_hours]
+        # Features: [urgency, otp_flag, impersonation, fin_demand, is_spoof, stir_shaken_risk, is_voip_line, duration_norm, complaints, off_hours]
         X = []
         y = []
 
@@ -39,10 +39,12 @@ class CallFraudMLModel:
                 impersonation = np.random.uniform(0.0, 0.1)
                 fin_demand = np.random.uniform(0.0, 0.3)
                 is_spoof = 0 if np.random.rand() > 0.05 else 1
+                stir_shaken = 0.0 if np.random.rand() > 0.1 else 0.3  # Mostly Attestation A/B
+                is_voip = 0 if np.random.rand() > 0.1 else 1  # Mobile/Landline
                 dur = np.random.uniform(0.2, 1.0)
                 complaints = 0 if np.random.rand() > 0.9 else 0
                 off_hours = 0 if np.random.rand() > 0.2 else 1
-                X.append([urgency, otp, impersonation, fin_demand, is_spoof, dur, complaints, off_hours])
+                X.append([urgency, otp, impersonation, fin_demand, is_spoof, stir_shaken, is_voip, dur, complaints, off_hours])
                 y.append(0)
             # Fraudulent vishing call sample
             else:
@@ -51,11 +53,14 @@ class CallFraudMLModel:
                 impersonation = np.random.uniform(0.5, 1.0)
                 fin_demand = np.random.uniform(0.4, 1.0)
                 is_spoof = 1 if np.random.rand() > 0.4 else 0
+                stir_shaken = np.random.choice([0.8, 1.0])  # Gateway C or Failed PASSporT
+                is_voip = 1 if np.random.rand() > 0.3 else 0  # High VOIP ratio
                 dur = np.random.uniform(0.05, 0.5)
                 complaints = np.random.randint(1, 8)
                 off_hours = 1 if np.random.rand() > 0.4 else 0
-                X.append([urgency, otp, impersonation, fin_demand, is_spoof, dur, complaints, off_hours])
+                X.append([urgency, otp, impersonation, fin_demand, is_spoof, stir_shaken, is_voip, dur, complaints, off_hours])
                 y.append(1)
+
 
         X = np.array(X)
         y = np.array(y)
