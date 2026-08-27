@@ -22,7 +22,10 @@ from backend.src.monitoring.metrics import (
     EVAL_RETRIES,
     CASE_STATUS_TRANSITIONS,
     CASE_RISK_SCORE,
+    CALL_ML_FRAUD_PROBABILITY,
+    CALL_ML_RISK_LEVEL,
 )
+
 from backend.src.orchestrator import eval_agent as default_eval_agent
 from backend.src.pipelines.transaction_fraud.workflow import run_transaction_fraud_pipeline
 from backend.src.pipelines.call_fraud.workflow import run_call_fraud_pipeline
@@ -84,6 +87,14 @@ def handle_event(
     EVENTS_PROCESSED.labels(channel=channel, final_status=pipeline_result.get("final_status", "unknown")).inc()
     for v in pipeline_result.get("violations", []):
         VIOLATIONS_DETECTED.labels(channel=channel, severity=v.get("severity", "unknown")).inc()
+
+    if channel == "call" and "ml_score" in pipeline_result:
+        ml_score = pipeline_result["ml_score"]
+        if "fraud_probability" in ml_score:
+            CALL_ML_FRAUD_PROBABILITY.observe(ml_score["fraud_probability"])
+        if "risk_level" in ml_score:
+            CALL_ML_RISK_LEVEL.labels(risk_level=ml_score["risk_level"]).inc()
+
 
     append_event(case.case_id, channel=channel, pipeline_result=pipeline_result)
     archive_event(channel, event_payload, pipeline_result, case_id=str(case.case_id))

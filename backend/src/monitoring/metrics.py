@@ -56,6 +56,19 @@ OPEN_CASES = Gauge(
     "Current number of open (non-terminal) cases",
 )
 
+CALL_ML_FRAUD_PROBABILITY = Histogram(
+    "botocop_call_ml_fraud_probability",
+    "Distribution of Call Fraud ML Model predicted probabilities",
+    buckets=[0.0, 0.2, 0.4, 0.6, 0.8, 1.0],
+)
+
+CALL_ML_RISK_LEVEL = Counter(
+    "botocop_call_ml_risk_level_total",
+    "Total call fraud risk levels assigned by ML model",
+    ["risk_level"],
+)
+
+
 
 def _init_open_cases_gauge():
     """
