@@ -62,16 +62,30 @@ def seed_database():
         session.commit()
     session.close()
 
+import threading
+import uvicorn
+from backend.src.api.server import app
+
+def start_metrics_server():
+    try:
+        logger.info("Starting Prometheus metrics API server on port 8000...")
+        uvicorn.run(app, host="0.0.0.0", port=8000, log_level="warning")
+    except Exception as e:
+        logger.warning(f"Metrics server start notice: {e}")
+
 def run_db_polling_simulation():
     """
     Polls the legacy SQL database for unprocessed events and pushes them
     into the fraud detection orchestrator.
     """
+    threading.Thread(target=start_metrics_server, daemon=True).start()
+
     logger.info("Starting SQL Database Polling...")
     
     init_db()
     
     seed_database()
+
     
     while True:
         session = SessionLocal()
