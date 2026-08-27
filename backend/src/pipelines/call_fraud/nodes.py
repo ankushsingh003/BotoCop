@@ -186,3 +186,35 @@ Output ONLY a valid JSON object, no preamble or markdown:
     except Exception as e:
         logger.error(f"Call audit failed: {e}")
         return {"error": [str(e)], "violations": [], "final_status": "failed"}
+
+
+from backend.src.pipelines.call_fraud.hitl_queue import get_hitl_queue
+
+def hitl_routing_node(state: CallFraudState) -> Dict[str, Any]:
+    """
+    Node 5: Route flagged or high-risk cases into Layer 5 Human-In-The-Loop review queue.
+    """
+    case_id = state.get("case_id") or str(uuid.uuid4())
+    ml_score = state.get("ml_score") or {}
+    violations = state.get("violations") or []
+    final_status = state.get("final_status") or "success"
+
+    # Enqueue if risk is HIGH/CRITICAL or violations exist
+    needs_review = (
+        ml_score.get("risk_level") in ["HIGH", "CRITICAL"]
+        or len(violations) > 0
+        or final_status in ["warning", "failed"]
+    )
+
+    if needs_review and not state.get("is_short_circuited"):
+        queue_item = get_hitl_queue().enqueue_case(
+            case_id=case_id,
+            call_data=state.get("call") or {},
+            ml_score=ml_score,
+            violations=violations,
+            identity_graph=state.get("identity_graph")
+        )
+        return {"hitl_status": "PENDING_HUMAN_REVIEW", "case_id": case_id}
+
+    return {"hitl_status": "AUTO_APPROVED", "case_id": case_id}
+

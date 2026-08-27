@@ -7,6 +7,7 @@ from backend.src.pipelines.call_fraud.nodes import (
     ml_risk_scoring_node,
     identity_correlation_node,
     audit_call_node,
+    hitl_routing_node,
 )
 
 
@@ -25,6 +26,7 @@ def create_call_fraud_graph():
     graph_builder.add_node("ml_risk_scoring", ml_risk_scoring_node)
     graph_builder.add_node("identity_correlation", identity_correlation_node)
     graph_builder.add_node("audit_call", audit_call_node)
+    graph_builder.add_node("hitl_routing", hitl_routing_node)
 
     graph_builder.set_entry_point("check_blocklist")
     graph_builder.add_conditional_edges(
@@ -38,7 +40,8 @@ def create_call_fraud_graph():
     graph_builder.add_edge("extract_features", "ml_risk_scoring")
     graph_builder.add_edge("ml_risk_scoring", "identity_correlation")
     graph_builder.add_edge("identity_correlation", "audit_call")
-    graph_builder.add_edge("audit_call", END)
+    graph_builder.add_edge("audit_call", "hitl_routing")
+    graph_builder.add_edge("hitl_routing", END)
 
     return graph_builder.compile()
 
@@ -51,7 +54,7 @@ def run_call_fraud_pipeline(call_event: dict, retry_feedback: str = None) -> dic
     """
     Automated Machine Learning & LLM Call Fraud Detection Pipeline.
     Integrates feature extraction, sklearn classifier scoring, cross-case graph correlation,
-    and forensic LLM audit.
+    forensic LLM audit, and Layer 5 Human-In-The-Loop review routing.
     """
     result = call_fraud_graph.invoke({
         "call": call_event,
@@ -64,10 +67,13 @@ def run_call_fraud_pipeline(call_event: dict, retry_feedback: str = None) -> dic
     })
 
     return {
+        "case_id": result.get("case_id"),
         "violations": result.get("violations", []),
         "final_status": result.get("final_status", "failed"),
+        "hitl_status": result.get("hitl_status", "AUTO_APPROVED"),
         "ml_score": result.get("ml_score", {}),
         "identity_graph": result.get("identity_graph", {}),
         "features": result.get("features", {}),
         "rag_sources": [],
     }
+
