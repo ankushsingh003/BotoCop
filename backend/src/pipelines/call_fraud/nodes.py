@@ -92,10 +92,15 @@ def identity_correlation_node(state: CallFraudState) -> Dict[str, Any]:
     return {"identity_graph": graph}
 
 
+from backend.src.pipelines.call_fraud.script_cache import get_script_cache
+
+
 def audit_call_node(state: CallFraudState) -> Dict[str, Any]:
     """
-    Node 4: Gemini LLM classification of transcript enriched with ML prediction,
-    explainable feature drivers, and identity graph context.
+    Node 4: Multi-stage transcript evaluation:
+      Stage 4a: Low-Risk ML Pre-Filter (bypasses LLM for clear benign calls)
+      Stage 4b: Scam Script Similarity Cache Lookup (bypasses LLM for near-duplicate scripts)
+      Stage 4c: Gemini LLM Audit (invoked only for novel ambiguous cases)
     """
     call = state.get("call") or {}
     transcript = call.get("transcript", "")
@@ -103,6 +108,24 @@ def audit_call_node(state: CallFraudState) -> Dict[str, Any]:
     ml_score = state.get("ml_score") or {}
     graph = state.get("identity_graph") or {}
 
+    # Stage 4a: Lightweight Low-Risk Pre-Filter
+    high_risk_keywords = ["otp", "bank", "police", "blocked", "wire", "urgent", "warrant", "arrest", "kyc"]
+    contains_trigger = any(kw in transcript.lower() for kw in high_risk_keywords)
+    fraud_prob = ml_score.get("fraud_probability", 0.0)
+
+    if fraud_prob < 0.25 and not contains_trigger:
+        logger.info(f"PRE-FILTER PASSED: Low-risk call (prob={fraud_prob:.2f}), bypassing LLM audit.")
+        return {"violations": [], "final_status": "success", "audit_source": "Low_Risk_PreFilter"}
+
+    # Stage 4b: Scam Script Similarity Cache Lookup
+    cache_hit, cached_violations, similarity = get_script_cache().lookup_cached_script(transcript)
+    if cache_hit:
+        logger.info(f"SCRIPT CACHE HIT: Reused cached audit for near-duplicate script (similarity={similarity:.2f})")
+        final_status = "failed" if ml_score.get("risk_level") in ["HIGH", "CRITICAL"] else "warning"
+        return {"violations": cached_violations, "final_status": final_status, "audit_source": f"Script_Cache_Hit_{similarity:.2f}"}
+
+    # Stage 4c: Escalated Novel Case -> Gemini LLM Forensic Audit
+    logger.info("ESCALATING TO GEMINI LLM: Novel ambiguous transcript requires forensic LLM reasoning pass.")
     api_key = os.getenv("GEMINI_API_KEY")
     model_name = os.getenv("GEMINI_MODEL_NAME", "gemini-2.0-flash")
     llm = ChatGoogleGenerativeAI(model=model_name, temperature=0.0, google_api_key=api_key)
@@ -165,7 +188,11 @@ Output ONLY a valid JSON object, no preamble or markdown:
         report = CallAuditModel(**data)
 
         violations = [v.model_dump() for v in report.violations]
-        
+
+        # Cache new scam script if violations were detected
+        if violations:
+            get_script_cache().cache_scam_script(transcript, violations)
+
         # If ML score indicates high/critical risk and violations list is empty, synthesize ML rule violation
         if ml_score.get("risk_level") in ["HIGH", "CRITICAL"] and not violations:
             violations.append({
@@ -182,10 +209,11 @@ Output ONLY a valid JSON object, no preamble or markdown:
         elif ml_score.get("risk_level") == "HIGH" and final_status == "success":
             final_status = "warning"
 
-        return {"violations": violations, "final_status": final_status}
+        return {"violations": violations, "final_status": final_status, "audit_source": "Gemini_LLM_Audit"}
     except Exception as e:
         logger.error(f"Call audit failed: {e}")
-        return {"error": [str(e)], "violations": [], "final_status": "failed"}
+        return {"error": [str(e)], "violations": [], "final_status": "failed", "audit_source": "LLM_Error_Fallback"}
+
 
 
 from backend.src.pipelines.call_fraud.hitl_queue import get_hitl_queue
