@@ -14,7 +14,10 @@ class CallFraudState(TypedDict):
     is_short_circuited: Optional[bool]
     hitl_status: Optional[str]
     case_id: Optional[str]
+    stt_metadata: Optional[Dict[str, Any]]
+    evidence_hash: Optional[str]
     error: List[str]
+
 
 
 

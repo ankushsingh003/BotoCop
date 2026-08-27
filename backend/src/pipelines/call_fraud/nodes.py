@@ -31,8 +31,27 @@ class CallAuditModel(BaseModel):
 from backend.src.pipelines.call_fraud.blocklist import get_scam_blocklist
 
 
+from backend.src.pipelines.call_fraud.stt_engine import MultilingualSTTEngine
+from backend.src.pipelines.call_fraud.evidence_store import get_evidence_vault
+
+
+def stt_preprocessing_node(state: CallFraudState) -> Dict[str, Any]:
+    """Node -1: Process audio/transcript via Whisper STT and perform Indic translation."""
+    call = state.get("call") or {}
+    normalized_transcript, detected_lang, stt_meta = MultilingualSTTEngine.process_audio_or_transcript(call)
+
+    updated_call = dict(call)
+    updated_call["transcript"] = normalized_transcript
+
+    return {
+        "call": updated_call,
+        "stt_metadata": stt_meta,
+    }
+
+
 def check_blocklist_node(state: CallFraudState) -> Dict[str, Any]:
     """Node 0: Fast O(1) Layer 4 Known-Bad Number Blocklist lookup for deterministic short-circuiting."""
+
     call = state.get("call") or {}
     caller_phone = call.get("caller_phone") or call.get("phone_number") or ""
 
@@ -126,15 +145,26 @@ def audit_call_node(state: CallFraudState) -> Dict[str, Any]:
 
     # Stage 4c: Escalated Novel Case -> Gemini LLM Forensic Audit
     logger.info("ESCALATING TO GEMINI LLM: Novel ambiguous transcript requires forensic LLM reasoning pass.")
-    api_key = os.getenv("GEMINI_API_KEY")
+    api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
     model_name = os.getenv("GEMINI_MODEL_NAME", "gemini-2.0-flash")
-    llm = ChatGoogleGenerativeAI(model=model_name, temperature=0.0, google_api_key=api_key)
+
+    if not api_key:
+        logger.warning("GEMINI_API_KEY not set. Using rule-based ML fallback audit.")
+        violations = [{
+            "category": "High_ML_Scam_Probability",
+            "description": f"ML Classifier detected high fraud probability ({ml_score.get('fraud_percentage', 0)}%) based on: {', '.join(ml_score.get('top_risk_drivers', []))}",
+            "severity": "high" if ml_score.get("risk_level") == "CRITICAL" else "medium",
+            "suggestion": ml_score.get("recommended_action", "FLAG_SUSPICIOUS")
+        }] if ml_score.get("risk_level") in ["HIGH", "CRITICAL"] else []
+        final_status = "failed" if ml_score.get("risk_level") == "CRITICAL" else ("warning" if violations else "success")
+        return {"violations": violations, "final_status": final_status, "audit_source": "ML_Rule_Fallback_No_API_Key"}
 
     cache_buster = str(uuid.uuid4())
     system_prompt = (
         f"Session ID: {cache_buster}. You are an AI Fraud Call & Vishing Analyst specializing "
         f"in automated voice-phishing detection, telecom fraud correlation, and risk audit."
     )
+
     feedback_block = (
         f"\n<prior_attempt_feedback>\n{retry_feedback}\n</prior_attempt_feedback>\n"
         if retry_feedback else ""
@@ -179,7 +209,9 @@ Output ONLY a valid JSON object, no preamble or markdown:
 }}"""
 
     try:
+        llm = ChatGoogleGenerativeAI(model=model_name, temperature=0.0, google_api_key=api_key)
         response = llm.invoke([SystemMessage(content=system_prompt), HumanMessage(content=content)])
+
         response_content = response.content
         start_idx = response_content.find("{")
         end_idx = response_content.rfind("}")
@@ -245,4 +277,27 @@ def hitl_routing_node(state: CallFraudState) -> Dict[str, Any]:
         return {"hitl_status": "PENDING_HUMAN_REVIEW", "case_id": case_id}
 
     return {"hitl_status": "AUTO_APPROVED", "case_id": case_id}
+
+
+def record_evidence_node(state: CallFraudState) -> Dict[str, Any]:
+    """Node 6: Generate tamper-evident SHA-256 evidence package in Chain-of-Custody Vault."""
+    case_id = state.get("case_id") or str(uuid.uuid4())
+    evidence_vault = get_evidence_vault()
+
+    record = evidence_vault.record_call_evidence(
+        case_id=case_id,
+        call_data=state.get("call") or {},
+        features=state.get("features") or {},
+        ml_score=state.get("ml_score") or {},
+        violations=state.get("violations") or [],
+        final_status=state.get("final_status") or "success",
+        identity_graph=state.get("identity_graph"),
+        stt_metadata=state.get("stt_metadata")
+    )
+
+    return {
+        "case_id": case_id,
+        "evidence_hash": record["hashes"]["pipeline_sha256"]
+    }
+
 

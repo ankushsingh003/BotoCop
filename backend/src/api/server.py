@@ -169,6 +169,17 @@ async def add_scam_number_to_blocklist(req: BlocklistAddRequest):
     return {"status": "ok", "message": f"Phone {req.phone} added to Layer 4 Blocklist."}
 
 
+@app.get("/api/v1/evidence/{case_id}")
+async def get_case_evidence(case_id: str):
+    """Fetch court-admissible SHA-256 chain-of-custody evidence package by case_id."""
+    from backend.src.pipelines.call_fraud.evidence_store import get_evidence_vault
+    vault = get_evidence_vault()
+    record = vault.get_evidence(case_id)
+    if not record:
+        raise HTTPException(status_code=404, detail=f"Evidence record for case {case_id} not found.")
+    return {"status": "ok", "evidence": record}
+
+
 @app.get("/")
 async def root():
     return {
@@ -180,10 +191,12 @@ async def root():
             "/api/v1/hitl/pending",
             "/api/v1/hitl/resolve",
             "/api/v1/blocklist",
+            "/api/v1/evidence/{case_id}",
             "/health",
             "/metrics"
         ]
     }
+
 
 
 
