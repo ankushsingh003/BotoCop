@@ -21,15 +21,35 @@ logger = logging.getLogger("case-linker")
 
 def resolve_entity_id(channel: str, event_payload: dict) -> Optional[str]:
     if channel == "transaction":
-        return event_payload.get("account_id")
+        return event_payload.get("account_id") or event_payload.get("customer_id") or event_payload.get("user_id")
     if channel == "call":
-        return event_payload.get("linked_account_id") or event_payload.get("phone_number")
+        return (
+            event_payload.get("linked_account_id")
+            or event_payload.get("account_id")
+            or event_payload.get("phone_number")
+            or event_payload.get("caller_phone")
+            or event_payload.get("customer_id")
+            or event_payload.get("user_id")
+        )
     if channel == "text":
-        return event_payload.get("linked_account_id") or event_payload.get("sender_email")
+        return (
+            event_payload.get("linked_account_id")
+            or event_payload.get("account_id")
+            or event_payload.get("sender_email")
+            or event_payload.get("customer_id")
+            or event_payload.get("user_id")
+        )
     if channel == "video":
-        return event_payload.get("linked_account_id") or event_payload.get("advertiser_id")
+        return (
+            event_payload.get("linked_account_id")
+            or event_payload.get("account_id")
+            or event_payload.get("advertiser_id")
+            or event_payload.get("customer_id")
+            or event_payload.get("user_id")
+        )
     logger.warning(f"Unknown channel '{channel}'; cannot resolve entity_id")
     return None
+
 
 
 def link_event_to_case(channel: str, event_payload: dict) -> Case:
