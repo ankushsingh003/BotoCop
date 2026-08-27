@@ -146,7 +146,8 @@ def audit_call_node(state: CallFraudState) -> Dict[str, Any]:
     # Stage 4c: Escalated Novel Case -> Gemini LLM Forensic Audit
     logger.info("ESCALATING TO GEMINI LLM: Novel ambiguous transcript requires forensic LLM reasoning pass.")
     api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
-    model_name = os.getenv("GEMINI_MODEL_NAME", "gemini-2.0-flash")
+    model_name = os.getenv("GEMINI_MODEL_NAME", "gemini-3.6-flash")
+
 
     if not api_key:
         logger.warning("GEMINI_API_KEY not set. Using rule-based ML fallback audit.")

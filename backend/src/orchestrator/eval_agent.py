@@ -40,7 +40,8 @@ class CaseEvalModel(BaseModel):
 
 def _get_llm():
     api_key = os.getenv("GEMINI_API_KEY")
-    model_name = os.getenv("GEMINI_MODEL_NAME", "gemini-2.0-flash")
+    model_name = os.getenv("GEMINI_MODEL_NAME", "gemini-3.6-flash")
+
     return ChatGoogleGenerativeAI(model=model_name, temperature=0.0, google_api_key=api_key)
 
 

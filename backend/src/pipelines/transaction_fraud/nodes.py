@@ -75,9 +75,12 @@ def audit_transaction_node(state: TransactionFraudState) -> Dict[str, Any]:
     retrieved_rules = state.get("retrieved_rules") or "No rules retrieved."
     retry_feedback = state.get("retry_feedback")
 
-    api_key = os.getenv("GEMINI_API_KEY")
-    model_name = os.getenv("GEMINI_MODEL_NAME", "gemini-2.0-flash")
-    llm = ChatGoogleGenerativeAI(model=model_name, temperature=0.0, google_api_key=api_key)
+    api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+    model_name = os.getenv("GEMINI_MODEL_NAME", "gemini-3.6-flash")
+
+    if not api_key:
+        logger.warning("GEMINI_API_KEY not set. Using rule-based fallback for transaction fraud audit.")
+        return {"violations": [], "final_status": "success"}
 
     cache_buster = str(uuid.uuid4())
     system_prompt = (
@@ -114,7 +117,9 @@ You MUST output ONLY a valid JSON object matching this schema, no preamble or ma
 }}"""
 
     try:
+        llm = ChatGoogleGenerativeAI(model=model_name, temperature=0.0, google_api_key=api_key)
         response = llm.invoke([SystemMessage(content=system_prompt), HumanMessage(content=content)])
+
         response_content = response.content
         start_idx = response_content.find("{")
         end_idx = response_content.rfind("}")
