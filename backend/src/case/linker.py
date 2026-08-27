@@ -39,16 +39,9 @@ def resolve_entity_id(channel: str, event_payload: dict) -> Optional[str]:
             or event_payload.get("customer_id")
             or event_payload.get("user_id")
         )
-    if channel == "video":
-        return (
-            event_payload.get("linked_account_id")
-            or event_payload.get("account_id")
-            or event_payload.get("advertiser_id")
-            or event_payload.get("customer_id")
-            or event_payload.get("user_id")
-        )
     logger.warning(f"Unknown channel '{channel}'; cannot resolve entity_id")
     return None
+
 
 
 
