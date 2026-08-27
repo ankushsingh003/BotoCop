@@ -119,7 +119,7 @@ Environment variables:
 | Variable | Default | Used by |
 |---|---|---|
 | `GEMINI_API_KEY` | -- (required) | All four pipelines, both eval judges |
-| `GEMINI_MODEL_NAME` | `gemini-2.5-flash` | All LLM calls |
+| `GEMINI_MODEL_NAME` | `gemini-2.0-flash` | All LLM calls |
 | `CASE_DATABASE_URL` | `sqlite:///./backend/data/cases.db` | Case store -- point at Postgres in production |
 | `KAFKA_BOOTSTRAP_SERVERS` | `localhost:9092` | Kafka consumer/producer |
 | `KAFKA_TRANSACTION_TOPIC` / `_CALL_TOPIC` / `_TEXT_TOPIC` / `_VIDEO_TOPIC` | `fraud.{channel}.events` | Kafka topic names |

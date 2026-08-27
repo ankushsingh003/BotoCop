@@ -38,7 +38,7 @@ def audit_call_node(state: CallFraudState) -> Dict[str, Any]:
     retry_feedback = state.get("retry_feedback")
 
     api_key = os.getenv("GEMINI_API_KEY")
-    model_name = os.getenv("GEMINI_MODEL_NAME", "gemini-2.5-flash")
+    model_name = os.getenv("GEMINI_MODEL_NAME", "gemini-2.0-flash")
     llm = ChatGoogleGenerativeAI(model=model_name, temperature=0.0, google_api_key=api_key)
 
     cache_buster = str(uuid.uuid4())
