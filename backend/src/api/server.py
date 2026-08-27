@@ -110,13 +110,81 @@ async def analyze_call_fraud(payload: dict):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.get("/api/v1/hitl/pending")
+async def get_pending_hitl_reviews():
+    """Layer 5: Fetch all call fraud cases pending Human-In-The-Loop analyst verification."""
+    from backend.src.pipelines.call_fraud.hitl_queue import get_hitl_queue
+    queue = get_hitl_queue()
+    return {"status": "ok", "pending_cases": queue.get_pending_reviews()}
+
+
+class HITLResolveRequest(BaseModel):
+    case_id: str
+    analyst_id: str
+    decision: str = Field(description="'CONFIRM_FRAUD' or 'OVERRIDE_FALSE_POSITIVE'")
+    notes: Optional[str] = ""
+
+
+@app.post("/api/v1/hitl/resolve")
+async def resolve_hitl_review(req: HITLResolveRequest):
+    """
+    Layer 5: Submit human analyst verification decision.
+    CONFIRM_FRAUD automatically populates Layer 4 Blocklist.
+    """
+    from backend.src.pipelines.call_fraud.hitl_queue import get_hitl_queue
+    queue = get_hitl_queue()
+    try:
+        resolved_case = queue.resolve_review(
+            case_id=req.case_id,
+            analyst_id=req.analyst_id,
+            decision=req.decision,
+            notes=req.notes or ""
+        )
+        return {"status": "ok", "resolved_case": resolved_case}
+    except Exception as e:
+        logger.error(f"HITL resolution failed: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.get("/api/v1/blocklist")
+async def get_scam_blocklist_numbers():
+    """Layer 4: Retrieve all confirmed scam caller IDs in the deterministic blocklist."""
+    from backend.src.pipelines.call_fraud.blocklist import get_scam_blocklist
+    bl = get_scam_blocklist()
+    return {"status": "ok", "blocklist": bl._blocklist}
+
+
+class BlocklistAddRequest(BaseModel):
+    phone: str
+    source: Optional[str] = "Manual_Admin"
+    reason: Optional[str] = "Reported Scam Caller"
+
+
+@app.post("/api/v1/blocklist")
+async def add_scam_number_to_blocklist(req: BlocklistAddRequest):
+    """Layer 4: Add a new confirmed scam caller ID to the deterministic blocklist."""
+    from backend.src.pipelines.call_fraud.blocklist import get_scam_blocklist
+    bl = get_scam_blocklist()
+    bl.add_scam_number(phone=req.phone, source=req.source, reason=req.reason)
+    return {"status": "ok", "message": f"Phone {req.phone} added to Layer 4 Blocklist."}
+
+
 @app.get("/")
 async def root():
     return {
         "status": "botocop-api online",
-        "message": "BotoCop Fraud Engine active with automated ML Call Fraud Pipeline.",
-        "endpoints": ["/ws/events", "/api/call-fraud/analyze", "/health", "/metrics"]
+        "message": "BotoCop Fraud Engine active with automated 5-Layer ML Call Fraud Pipeline.",
+        "endpoints": [
+            "/ws/events",
+            "/api/call-fraud/analyze",
+            "/api/v1/hitl/pending",
+            "/api/v1/hitl/resolve",
+            "/api/v1/blocklist",
+            "/health",
+            "/metrics"
+        ]
     }
+
 
 
 if __name__ == "__main__":
