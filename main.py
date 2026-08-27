@@ -93,12 +93,15 @@ def run_db_polling_simulation():
                     session.commit()
                     
             else:
-                pass # Wait silently
+                logger.info("All events processed. Resetting legacy event queue for continuous simulation...")
+                session.query(LegacyEvent).update({LegacyEvent.processed: False})
+                session.commit()
                 
         finally:
             session.close()
             
         time.sleep(3) # Poll every 3 seconds
+
 
 if __name__ == "__main__":
     run_db_polling_simulation()
