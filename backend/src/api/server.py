@@ -95,9 +95,29 @@ async def websocket_events(websocket: WebSocket):
     except WebSocketDisconnect:
         logger.info("WebSocket client disconnected from /ws/events")
 
+@app.post("/api/call-fraud/analyze")
+async def analyze_call_fraud(payload: dict):
+    """
+    Direct REST endpoint to submit a call fraud event for automated ML analysis,
+    identity correlation graph resolution, and LLM forensic audit.
+    """
+    from backend.src.orchestrator.orchestrator import handle_event
+    try:
+        result = handle_event("call", payload)
+        return {"status": "ok", "data": result}
+    except Exception as e:
+        logger.error(f"Call fraud analysis failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/")
 async def root():
-    return {"status": "botocop-api online", "message": "API is strictly event-driven. Use WebSocket or Kafka for ingestion."}
+    return {
+        "status": "botocop-api online",
+        "message": "BotoCop Fraud Engine active with automated ML Call Fraud Pipeline.",
+        "endpoints": ["/ws/events", "/api/call-fraud/analyze", "/health", "/metrics"]
+    }
+
 
 if __name__ == "__main__":
     import uvicorn
