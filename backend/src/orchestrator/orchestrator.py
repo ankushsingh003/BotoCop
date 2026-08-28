@@ -95,8 +95,20 @@ def handle_event(
         if "risk_level" in ml_score:
             CALL_ML_RISK_LEVEL.labels(risk_level=ml_score["risk_level"]).inc()
 
+    source_identifier = (
+        event_payload.get("caller_phone")
+        or event_payload.get("phone_number")
+        or event_payload.get("account_id")
+        or event_payload.get("sender_email")
+        or case.entity_id
+    )
 
-    append_event(case.case_id, channel=channel, pipeline_result=pipeline_result)
+    append_event(
+        case.case_id,
+        channel=channel,
+        pipeline_result=pipeline_result,
+        source_identifier=source_identifier
+    )
     archive_event(channel, event_payload, pipeline_result, case_id=str(case.case_id))
 
     full_case = get_case_with_events(case.case_id)

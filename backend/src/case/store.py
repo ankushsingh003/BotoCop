@@ -82,12 +82,14 @@ def append_event(
     channel: str,
     pipeline_result: Dict[str, Any],
     raw_ref: Optional[str] = None,
+    source_identifier: Optional[str] = None,
 ) -> CaseEvent:
     session = get_session()
     try:
         event = CaseEvent(
             case_id=case_id,
             channel=channel,
+            source_identifier=source_identifier,
             raw_ref=raw_ref,
             pipeline_result=pipeline_result,
         )
@@ -99,7 +101,7 @@ def append_event(
 
         session.commit()
         session.refresh(event)
-        logger.info(f"Appended {channel} event {event.event_id} to case {case_id}")
+        logger.info(f"Appended {channel} event {event.event_id} (source={source_identifier}) to case {case_id}")
         return event
     finally:
         session.close()
@@ -128,6 +130,7 @@ def get_case_with_events(case_id) -> Optional[Dict[str, Any]]:
                 {
                     "event_id": str(e.event_id),
                     "channel": e.channel,
+                    "source_identifier": e.source_identifier,
                     "pipeline_result": e.pipeline_result,
                     "created_at": e.created_at,
                 }
