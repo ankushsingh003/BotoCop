@@ -47,11 +47,18 @@ class MultilingualSTTEngine:
             "translation_applied": False,
         }
 
-        # If transcript is empty but audio URL exists, simulate/perform STT transcription
+        # If transcript is empty but audio URL / file exists, perform real STT transcription
         if not transcript and audio_url:
-            logger.info(f"STT: Processing audio recording from {audio_url} via Whisper STT...")
-            transcript = "Namaste. Main HDFC Bank se bol raha hu. Aapka account band ho jayega, apna OTP do."
-            stt_metadata["audio_processed"] = True
+            logger.info(f"STT: Processing audio recording from {audio_url}...")
+            transcribed_text = cls._transcribe_audio_file(audio_url)
+            if transcribed_text:
+                transcript = transcribed_text
+                stt_metadata["audio_processed"] = True
+                stt_metadata["stt_engine"] = "Gemini-Multimodal-STT"
+            else:
+                logger.warning(f"STT: Could not process audio from {audio_url}, using empty transcript fallback.")
+                stt_metadata["audio_processed"] = False
+                stt_metadata["stt_engine"] = "None"
 
         if not transcript:
             return "", "EN", stt_metadata
@@ -90,3 +97,43 @@ class MultilingualSTTEngine:
             result += f" (English Context: Caller demands immediate OTP and warns of account block)"
             
         return result
+
+    @classmethod
+    def _transcribe_audio_file(cls, audio_url: str) -> str:
+        """
+        Transcribe audio using Gemini Multimodal API if audio file exists on disk or via network.
+        If file is missing or API unavailable, returns empty string to prevent silent hardcoded errors.
+        """
+        if not audio_url:
+            return ""
+
+        # Check if local file exists
+        if os.path.exists(audio_url):
+            try:
+                api_key = os.getenv("GEMINI_API_KEY")
+                if not api_key:
+                    logger.warning("STT: GEMINI_API_KEY missing; cannot transcribe local audio file.")
+                    return ""
+                
+                from google import genai
+                client = genai.Client(api_key=api_key)
+                with open(audio_url, "rb") as f:
+                    audio_bytes = f.read()
+                
+                response = client.models.generate_content(
+                    model="gemini-3.6-flash",
+                    contents=[
+                        {"mime_type": "audio/mp3" if audio_url.endswith(".mp3") else "audio/wav", "data": audio_bytes},
+                        "Transcribe the verbatim speech from this audio recording into text. Return only the verbatim transcript."
+                    ]
+                )
+                if response and response.text:
+                    logger.info(f"STT: Successfully transcribed audio file ({len(audio_bytes)} bytes) via Gemini API.")
+                    return response.text.strip()
+            except Exception as e:
+                logger.error(f"STT: Audio transcription failed for {audio_url}: {e}")
+                return ""
+        
+        logger.info(f"STT: Audio path '{audio_url}' is not a local file path; returning empty string.")
+        return ""
+
