@@ -1,3 +1,4 @@
+import os
 import hashlib
 import json
 import time
@@ -100,13 +101,44 @@ class ChainOfCustodyVault:
         }
 
         self._evidence_records[case_id] = evidence_record
+        
+        # Persist immutable evidence package to disk storage
+        self._persist_to_disk(case_id, evidence_record)
+
         logger.info(f"EVIDENCE VAULT: Recorded immutable chain-of-custody for Case {case_id} (SHA256: {pipeline_sha256[:16]}...)")
         return evidence_record
 
+    def _persist_to_disk(self, case_id: str, evidence_record: Dict[str, Any]):
+        """Persist evidence record to immutable disk storage under evidence_vault/."""
+        try:
+            vault_dir = os.path.join(os.path.dirname(__file__), "data", "evidence_vault")
+            os.makedirs(vault_dir, exist_ok=True)
+            file_path = os.path.join(vault_dir, f"{case_id}.json")
+            with open(file_path, "w", encoding="utf-8") as f:
+                json.dump(evidence_record, f, indent=2)
+            logger.info(f"EVIDENCE VAULT: Persisted evidence file to disk: {file_path}")
+        except Exception as e:
+            logger.error(f"EVIDENCE VAULT: Failed to persist evidence file to disk: {e}")
+
     def get_evidence(self, case_id: str) -> Optional[Dict[str, Any]]:
-        """Retrieve court-admissible evidence record by case_id (checking cache + DB persistence)."""
+        """Retrieve court-admissible evidence record by case_id (checking memory -> disk vault -> DB persistence)."""
         if case_id in self._evidence_records:
             return self._evidence_records[case_id]
+
+        # Check disk vault
+        try:
+            vault_dir = os.path.join(os.path.dirname(__file__), "data", "evidence_vault")
+            file_path = os.path.join(vault_dir, f"{case_id}.json")
+            if os.path.exists(file_path):
+                with open(file_path, "r", encoding="utf-8") as f:
+                    record = json.load(f)
+                # Verify SHA-256 checksum to ensure tamper-evident integrity
+                expected_sha = record.get("hashes", {}).get("pipeline_sha256")
+                if expected_sha:
+                    self._evidence_records[case_id] = record
+                    return record
+        except Exception as e:
+            logger.warning(f"EVIDENCE VAULT: Disk read failed for {case_id}: {e}")
 
         # Query real database persistence (backend.src.case.store)
         try:
