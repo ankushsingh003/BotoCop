@@ -46,6 +46,24 @@ def get_open_case_for_entity(entity_id: str) -> Optional[Case]:
         session.close()
 
 
+def get_all_cases_for_entity(entity_id: str) -> list:
+    """Return all historical cases stored in DB for this entity (caller phone / account)."""
+    session = get_session()
+    try:
+        cases = (
+            session.query(Case)
+            .filter(Case.entity_id == entity_id)
+            .order_by(Case.opened_at.desc())
+            .all()
+        )
+        return [{"case_id": str(c.case_id), "status": c.status, "risk_score": c.risk_score, "opened_at": c.opened_at} for c in cases]
+    except Exception as e:
+        logger.error(f"Failed to query historical cases for entity {entity_id}: {e}")
+        return []
+    finally:
+        session.close()
+
+
 def create_case(entity_id: str) -> Case:
     session = get_session()
     try:
