@@ -70,6 +70,18 @@ def handle_event(
     if requires_eval:
         for attempt in range(1, MAX_RETRIES + 1):
             pipeline_result = pipeline_fn(event_payload, retry_feedback)
+            
+            # Short-circuit optimization: Bypass expensive LLM eval call for deterministic blocklist hits
+            if pipeline_result.get("is_short_circuited") or pipeline_result.get("blocklist_hit"):
+                logger.info("Pipeline short-circuited by deterministic blocklist; bypassing LLM eval agent.")
+                from backend.src.orchestrator.eval_agent import EventEvaluationResult
+                event_eval = EventEvaluationResult(
+                    is_confident=True,
+                    confidence_score=1.0,
+                    explanation="Short-circuited by Layer 4 deterministic blocklist prefilter (0 LLM token cost)."
+                )
+                break
+
             event_eval = eval_agent.evaluate_event(
                 pipeline_result, retrieved_rules=pipeline_result.get("rag_sources")
             )
