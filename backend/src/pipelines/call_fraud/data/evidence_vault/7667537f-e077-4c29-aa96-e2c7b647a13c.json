@@ -1,0 +1,47 @@
+{
+  "case_id": "7667537f-e077-4c29-aa96-e2c7b647a13c",
+  "timestamp_utc": "2026-08-28T01:06:12Z",
+  "caller_phone": "+919777666555",
+  "target_account_id": "ACCT-9009",
+  "audio_url": "",
+  "transcript_snippet": "Urgent! Transfer your funds to safe account now or police will arrest you.",
+  "hashes": {
+    "transcript_sha256": "6d59e6cd69c5c188afb3456598ca305a561b7c3842f9faa5de5214c20864cf15",
+    "audio_sha256": "6d59e6cd69c5c188afb3456598ca305a561b7c3842f9faa5de5214c20864cf15",
+    "pipeline_sha256": "051c47e488ddbe8a1cab0063d1775155ab5afa2667837b08842607564518c31f"
+  },
+  "audit_trail": {
+    "model_version": "BotoCop-Call-RF-v1.3",
+    "prompt_version": "ForensicVishingPrompt-v2.0",
+    "classifier_schema": "13-Feature-Vector-v1.0",
+    "stt_metadata": {
+      "stt_engine": "Whisper-v3-Turbo",
+      "audio_processed": false,
+      "original_language": "EN",
+      "translation_applied": false
+    },
+    "ml_score": {
+      "fraud_probability": 0.45,
+      "fraud_percentage": 45.0,
+      "risk_level": "MEDIUM",
+      "recommended_action": "WARN_USER_IN_REALTIME",
+      "top_risk_drivers": [
+        "Urgency Score (val=1.0, impact=13.0%)",
+        "Impersonation Score (val=0.5, impact=5.0%)",
+        "Fanout Ratio 1H (val=0.5, impact=5.0%)"
+      ],
+      "model_type": "RandomForestClassifier (Pre-trained Baseline + Online HITL Retrained)"
+    },
+    "identity_graph_nodes_count": 2
+  },
+  "violations": [
+    {
+      "category": "Police_Impersonation",
+      "description": "Threatened arrest",
+      "severity": "high",
+      "suggestion": "Block number"
+    }
+  ],
+  "final_status": "failed",
+  "chain_of_custody_verified": true
+}

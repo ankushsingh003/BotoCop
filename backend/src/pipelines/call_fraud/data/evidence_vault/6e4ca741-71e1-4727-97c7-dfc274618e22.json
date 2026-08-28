@@ -1,0 +1,45 @@
+{
+  "case_id": "6e4ca741-71e1-4727-97c7-dfc274618e22",
+  "timestamp_utc": "2026-08-28T01:06:12Z",
+  "caller_phone": "+919876543210",
+  "target_account_id": "UNKNOWN",
+  "audio_url": "",
+  "transcript_snippet": "Good morning, this is a normal customer call.",
+  "hashes": {
+    "transcript_sha256": "c6e996ee0683e9abcabfdfd7d34c3d2551516dfcb5f7c4fc712caf111271636e",
+    "audio_sha256": "c6e996ee0683e9abcabfdfd7d34c3d2551516dfcb5f7c4fc712caf111271636e",
+    "pipeline_sha256": "03769247dcc42a8f921e1b0940ec169f557f2b6e351e85ecc665f83328b561d1"
+  },
+  "audit_trail": {
+    "model_version": "BotoCop-Call-RF-v1.3",
+    "prompt_version": "ForensicVishingPrompt-v2.0",
+    "classifier_schema": "13-Feature-Vector-v1.0",
+    "stt_metadata": {
+      "stt_engine": "Whisper-v3-Turbo",
+      "audio_processed": false,
+      "original_language": "EN",
+      "translation_applied": false
+    },
+    "ml_score": {
+      "fraud_probability": 1.0,
+      "fraud_percentage": 100.0,
+      "risk_level": "CRITICAL",
+      "recommended_action": "BLOCK_CALL_AND_FREEZE_ACCOUNT",
+      "top_risk_drivers": [
+        "Known Scam Number Blocklist (Source: I4C_Cybercrime_Registry)"
+      ],
+      "model_type": "Deterministic_Blocklist"
+    },
+    "identity_graph_nodes_count": 0
+  },
+  "violations": [
+    {
+      "category": "Known_Scammer_Blocklist",
+      "description": "Caller phone matched verified cybercrime scam database (I4C_Cybercrime_Registry: Bank Impersonation Vishing Operation)",
+      "severity": "critical",
+      "suggestion": "Block number across carrier gateway and alert user immediately"
+    }
+  ],
+  "final_status": "failed",
+  "chain_of_custody_verified": true
+}

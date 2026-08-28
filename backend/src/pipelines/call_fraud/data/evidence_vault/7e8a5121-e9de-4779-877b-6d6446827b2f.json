@@ -1,0 +1,40 @@
+{
+  "case_id": "7e8a5121-e9de-4779-877b-6d6446827b2f",
+  "timestamp_utc": "2026-08-28T01:06:13Z",
+  "caller_phone": "+919111222333",
+  "target_account_id": "UNKNOWN",
+  "audio_url": "",
+  "transcript_snippet": "Hello, I am scheduling a doctor appointment for tomorrow morning at 10 AM.",
+  "hashes": {
+    "transcript_sha256": "b87c280bc961d559802af8ac2f7cec261f926fa581d164e179dd411e3dcbbc6e",
+    "audio_sha256": "b87c280bc961d559802af8ac2f7cec261f926fa581d164e179dd411e3dcbbc6e",
+    "pipeline_sha256": "d4017c9c48f15d861054e6d39d7acc9a551ef327bab3998ef9c3a3c285ea30b7"
+  },
+  "audit_trail": {
+    "model_version": "BotoCop-Call-RF-v1.3",
+    "prompt_version": "ForensicVishingPrompt-v2.0",
+    "classifier_schema": "13-Feature-Vector-v1.0",
+    "stt_metadata": {
+      "stt_engine": "Whisper-v3-Turbo",
+      "audio_processed": false,
+      "original_language": "EN",
+      "translation_applied": false
+    },
+    "ml_score": {
+      "fraud_probability": 0.22,
+      "fraud_percentage": 22.0,
+      "risk_level": "LOW",
+      "recommended_action": "ALLOW_CALL",
+      "top_risk_drivers": [
+        "Fanout Ratio 1H (val=0.5, impact=5.0%)",
+        "Cross Account Target Count (val=0.2, impact=1.8%)",
+        "Call Velocity 1H Normalized (val=0.2, impact=0.8%)"
+      ],
+      "model_type": "RandomForestClassifier (Pre-trained Baseline + Online HITL Retrained)"
+    },
+    "identity_graph_nodes_count": 2
+  },
+  "violations": [],
+  "final_status": "success",
+  "chain_of_custody_verified": true
+}

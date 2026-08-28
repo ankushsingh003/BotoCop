@@ -1,0 +1,47 @@
+{
+  "case_id": "2470a7ad-2437-47bd-a609-ad811c8eaafb",
+  "timestamp_utc": "2026-08-28T01:06:12Z",
+  "caller_phone": "+919988776655",
+  "target_account_id": "ACCT-5544",
+  "audio_url": "",
+  "transcript_snippet": "Urgent alert: Account suspended. Tell me your bank OTP immediately.",
+  "hashes": {
+    "transcript_sha256": "f971b5ef07965bfc7cca31f60d0320f9568be3fa04f64e1ffb0d6a064e63c794",
+    "audio_sha256": "f971b5ef07965bfc7cca31f60d0320f9568be3fa04f64e1ffb0d6a064e63c794",
+    "pipeline_sha256": "143a679b0f0977105539658cc3d4eeb095fcd924313143028feba6f6b711ebea"
+  },
+  "audit_trail": {
+    "model_version": "BotoCop-Call-RF-v1.3",
+    "prompt_version": "ForensicVishingPrompt-v2.0",
+    "classifier_schema": "13-Feature-Vector-v1.0",
+    "stt_metadata": {
+      "stt_engine": "Whisper-v3-Turbo",
+      "audio_processed": false,
+      "original_language": "EN",
+      "translation_applied": false
+    },
+    "ml_score": {
+      "fraud_probability": 0.53,
+      "fraud_percentage": 53.0,
+      "risk_level": "MEDIUM",
+      "recommended_action": "WARN_USER_IN_REALTIME",
+      "top_risk_drivers": [
+        "Complaint History Count (val=2.0, impact=16.0%)",
+        "Urgency Score (val=1.0, impact=13.0%)",
+        "Impersonation Score (val=0.5, impact=5.0%)"
+      ],
+      "model_type": "RandomForestClassifier (Pre-trained Baseline + Online HITL Retrained)"
+    },
+    "identity_graph_nodes_count": 4
+  },
+  "violations": [
+    {
+      "category": "Bank_Impersonation",
+      "description": "Demanded OTP claiming bank suspension",
+      "severity": "high",
+      "suggestion": "Block phone and alert customer"
+    }
+  ],
+  "final_status": "warning",
+  "chain_of_custody_verified": true
+}
