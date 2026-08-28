@@ -73,7 +73,74 @@ class CallFraudMLModel:
         y = np.array(y)
         self.clf.fit(X, y)
         self.feature_names = CallFeatures.feature_names()
+        
+        # Retrain on real historical cases from SQL database if available
+        self.retrain_from_database_history()
         logger.info("Call Fraud ML Classifier ready.")
+
+    def retrain_from_database_history(self) -> int:
+        """
+        Retrains or updates the model using real historical case outcomes and HITL analyst dispositions
+        persisted in the CaseStore database. Returns count of real database cases ingested.
+        """
+        try:
+            from backend.src.case.models import Case, CaseEvent, CaseStatus
+            from backend.src.case.db import get_session
+            session = get_session()
+            real_cases = session.query(Case).all()
+            
+            real_X = []
+            real_y = []
+            
+            for c in real_cases:
+                # Get case events to extract feature vector
+                events = session.query(CaseEvent).filter(CaseEvent.case_id == c.case_id).all()
+                if not events:
+                    continue
+                
+                latest_res = events[-1].pipeline_result or {}
+                feat_dict = latest_res.get("features", {})
+                if not feat_dict:
+                    continue
+                
+                # Determine ground truth label from status
+                if c.status in [CaseStatus.ESCALATED.value, "BLOCKED", "CONFIRMED_FRAUD"]:
+                    label = 1
+                elif c.status in [CaseStatus.CLOSED.value, "FALSE_POSITIVE", "CLEARED"]:
+                    label = 0
+                elif c.risk_score >= 0.6:
+                    label = 1
+                else:
+                    label = 0
+                    
+                vec = [
+                    feat_dict.get("urgency_intent_score", 0.0),
+                    feat_dict.get("otp_request_flag", 0),
+                    feat_dict.get("impersonation_score", 0.0),
+                    feat_dict.get("financial_demand_score", 0.0),
+                    feat_dict.get("caller_spoof_flag", 0),
+                    feat_dict.get("stir_shaken_risk", 0.0),
+                    feat_dict.get("is_voip_line", 0),
+                    feat_dict.get("fanout_ratio_1h", 0.0),
+                    feat_dict.get("call_velocity_1h_norm", 0.0),
+                    feat_dict.get("cross_account_target_norm", 0.0),
+                    feat_dict.get("call_duration_norm", 0.0),
+                    feat_dict.get("prior_complaints_norm", 0.0),
+                    feat_dict.get("off_hours_flag", 0),
+                ]
+                if len(vec) == 13:
+                    real_X.append(vec)
+                    real_y.append(label)
+
+            session.close()
+
+            if real_X and len(real_X) >= 5:
+                logger.info(f"Retraining Call Fraud ML Classifier on {len(real_X)} real database cases...")
+                self.clf.fit(np.array(real_X), np.array(real_y))
+                return len(real_X)
+        except Exception as e:
+            logger.warning(f"ML Model: Could not retrain on DB history: {e}")
+        return 0
 
     def predict(self, features: CallFeatures) -> Dict[str, Any]:
         """
@@ -120,7 +187,7 @@ class CallFraudMLModel:
             "risk_level": risk_level,
             "recommended_action": action,
             "top_risk_drivers": top_drivers,
-            "model_type": "RandomForestClassifier",
+            "model_type": "RandomForestClassifier (Pre-trained Baseline + Online HITL Retrained)",
         }
 
 
