@@ -25,17 +25,49 @@ class TextAuditModel(BaseModel):
     final_status: str = Field(description="success, warning, or failed")
 
 
+import re
+
+
+def parse_email_authentication_results(raw_headers: str) -> Dict[str, str]:
+    """
+    Parses standard RFC 7601 / RFC 7208 Authentication-Results headers
+    (from Gmail, Outlook, Postfix, SendGrid, etc.) to extract real SPF, DKIM, and DMARC verdicts.
+    """
+    verdicts = {"spf": "none", "dkim": "none", "dmarc": "none"}
+    if not raw_headers:
+        return verdicts
+
+    headers_lower = raw_headers.lower()
+
+    # Parse SPF verdict
+    spf_match = re.search(r"spf=(pass|fail|softfail|neutral|none)", headers_lower)
+    if spf_match:
+        verdicts["spf"] = spf_match.group(1)
+
+    # Parse DKIM verdict
+    dkim_match = re.search(r"dkim=(pass|fail|none)", headers_lower)
+    if dkim_match:
+        verdicts["dkim"] = dkim_match.group(1)
+
+    # Parse DMARC verdict
+    dmarc_match = re.search(r"dmarc=(pass|fail|none)", headers_lower)
+    if dmarc_match:
+        verdicts["dmarc"] = dmarc_match.group(1)
+
+    return verdicts
+
+
 def audit_text_node(state: TextFraudState) -> Dict[str, Any]:
     """
     Direct LLM classification of message/email content for phishing and
-    scam indicators. No RAG here for the same reason as the call
-    pipeline -- this is a text-understanding task the LLM can do
-    directly, not a lookup against an external policy document.
+    scam indicators. Parses RFC 7601 SPF/DKIM/DMARC headers when provided.
     """
     message = state.get("message") or {}
     body = message.get("body", "")
     subject = message.get("subject", "")
     sender = message.get("sender_email") or message.get("sender") or message.get("from") or ""
+    raw_headers = message.get("headers") or message.get("raw_headers") or ""
+    auth_verdicts = parse_email_authentication_results(raw_headers)
     retry_feedback = state.get("retry_feedback")
 
     api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
@@ -68,11 +100,16 @@ def audit_text_node(state: TextFraudState) -> Dict[str, Any]:
     content = f"""Request ID: {cache_buster}
 Analyze this message for phishing/scam indicators: spoofed sender identity,
 urgency/fear pressure, requests for credentials/OTP/payment, suspicious
-links, mismatched sender domain, etc.
+links, mismatched sender domain, SPF/DKIM/DMARC security header failures, etc.
 
 <sender>
 {sender}
 </sender>
+<email_authentication_results>
+SPF: {auth_verdicts['spf'].upper()}
+DKIM: {auth_verdicts['dkim'].upper()}
+DMARC: {auth_verdicts['dmarc'].upper()}
+</email_authentication_results>
 <subject>
 {subject}
 </subject>
