@@ -35,7 +35,7 @@ def audit_text_node(state: TextFraudState) -> Dict[str, Any]:
     message = state.get("message") or {}
     body = message.get("body", "")
     subject = message.get("subject", "")
-    sender = message.get("sender", "")
+    sender = message.get("sender_email") or message.get("sender") or message.get("from") or ""
     retry_feedback = state.get("retry_feedback")
 
     api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
