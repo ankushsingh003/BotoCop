@@ -77,7 +77,6 @@ class CaseEvent(Base):
     event_id = Column(GUID(), primary_key=True, default=uuid.uuid4)
     case_id = Column(GUID(), ForeignKey("cases.case_id"), nullable=False, index=True)
     channel = Column(String, nullable=False)  # "transaction" | "call" (more later)
-    source_identifier = Column(String, nullable=True, index=True)  # Caller phone, account ID, or email
     raw_ref = Column(String, nullable=True)   # pointer to raw artifact (txn id, recording url)
     pipeline_result = Column(JSON, nullable=True)  # normalized violations/severities
     created_at = Column(DateTime, default=utcnow)
