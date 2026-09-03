@@ -1,9 +1,7 @@
 import os
 import uuid
 import logging
-from typing import Optional, Dict, Any
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, Depends, Security
-from fastapi.security import APIKeyHeader
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
@@ -17,21 +15,6 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("botocop-web")
 
 app = FastAPI(title="BotoCop Web API")
-
-api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
-
-def verify_api_key(api_key: Optional[str] = Depends(api_key_header)):
-    """
-    Mandatory authentication dependency for state-changing write endpoints.
-    Checks X-API-Key header against BOTOCOP_API_KEY environment variable.
-    """
-    expected_key = os.getenv("BOTOCOP_API_KEY", "botocop-secret-api-key-2026")
-    if not api_key or api_key != expected_key:
-        raise HTTPException(
-            status_code=401,
-            detail="Unauthorized: Invalid or missing X-API-Key header."
-        )
-    return api_key
 
 app.add_middleware(
     CORSMiddleware,
@@ -129,7 +112,7 @@ async def websocket_events(websocket: WebSocket):
     except WebSocketDisconnect:
         logger.info("WebSocket client disconnected from /ws/events")
 
-@app.post("/api/call-fraud/analyze", dependencies=[Depends(verify_api_key)])
+@app.post("/api/call-fraud/analyze")
 async def analyze_call_fraud(payload: dict):
     """
     Direct REST endpoint to submit a call fraud event for automated ML analysis,
@@ -159,7 +142,7 @@ class HITLResolveRequest(BaseModel):
     notes: Optional[str] = ""
 
 
-@app.post("/api/v1/hitl/resolve", dependencies=[Depends(verify_api_key)])
+@app.post("/api/v1/hitl/resolve")
 async def resolve_hitl_review(req: HITLResolveRequest):
     """
     Layer 5: Submit human analyst verification decision.
@@ -194,7 +177,7 @@ class BlocklistAddRequest(BaseModel):
     reason: Optional[str] = "Reported Scam Caller"
 
 
-@app.post("/api/v1/blocklist", dependencies=[Depends(verify_api_key)])
+@app.post("/api/v1/blocklist")
 async def add_scam_number_to_blocklist(req: BlocklistAddRequest):
     """Layer 4: Add a new confirmed scam caller ID to the deterministic blocklist."""
     from backend.src.pipelines.call_fraud.blocklist import get_scam_blocklist
