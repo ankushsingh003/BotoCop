@@ -1,4 +1,3 @@
-import os
 import hashlib
 import json
 import time
@@ -101,82 +100,12 @@ class ChainOfCustodyVault:
         }
 
         self._evidence_records[case_id] = evidence_record
-        
-        # Persist immutable evidence package to disk storage
-        self._persist_to_disk(case_id, evidence_record)
-
         logger.info(f"EVIDENCE VAULT: Recorded immutable chain-of-custody for Case {case_id} (SHA256: {pipeline_sha256[:16]}...)")
         return evidence_record
 
-    def _persist_to_disk(self, case_id: str, evidence_record: Dict[str, Any]):
-        """Persist evidence record to immutable disk storage under evidence_vault/."""
-        try:
-            vault_dir = os.path.join(os.path.dirname(__file__), "data", "evidence_vault")
-            os.makedirs(vault_dir, exist_ok=True)
-            file_path = os.path.join(vault_dir, f"{case_id}.json")
-            with open(file_path, "w", encoding="utf-8") as f:
-                json.dump(evidence_record, f, indent=2)
-            logger.info(f"EVIDENCE VAULT: Persisted evidence file to disk: {file_path}")
-        except Exception as e:
-            logger.error(f"EVIDENCE VAULT: Failed to persist evidence file to disk: {e}")
-
     def get_evidence(self, case_id: str) -> Optional[Dict[str, Any]]:
-        """Retrieve court-admissible evidence record by case_id (checking memory -> disk vault -> DB persistence)."""
-        if case_id in self._evidence_records:
-            return self._evidence_records[case_id]
-
-        # Check disk vault
-        try:
-            vault_dir = os.path.join(os.path.dirname(__file__), "data", "evidence_vault")
-            file_path = os.path.join(vault_dir, f"{case_id}.json")
-            if os.path.exists(file_path):
-                with open(file_path, "r", encoding="utf-8") as f:
-                    record = json.load(f)
-                # Verify SHA-256 checksum to ensure tamper-evident integrity
-                expected_sha = record.get("hashes", {}).get("pipeline_sha256")
-                if expected_sha:
-                    self._evidence_records[case_id] = record
-                    return record
-        except Exception as e:
-            logger.warning(f"EVIDENCE VAULT: Disk read failed for {case_id}: {e}")
-
-        # Query real database persistence (backend.src.case.store)
-        try:
-            from backend.src.case.store import get_case_with_events
-            case_data = get_case_with_events(case_id)
-            if case_data and case_data.get("events"):
-                latest_event = case_data["events"][-1]
-                pipeline_res = latest_event.get("pipeline_result", {})
-                
-                # Reconstruct evidence record from database
-                reconstructed = {
-                    "case_id": case_id,
-                    "timestamp_utc": str(case_data.get("last_event_at")),
-                    "caller_phone": case_data.get("entity_id", "UNKNOWN"),
-                    "target_account_id": "DB_PERSISTED",
-                    "transcript_snippet": str(pipeline_res.get("stt_metadata", {}).get("transcript", ""))[:200],
-                    "hashes": {
-                        "transcript_sha256": self.compute_sha256(str(pipeline_res)),
-                        "audio_sha256": self.compute_sha256(case_id),
-                        "pipeline_sha256": self.compute_sha256(json.dumps(pipeline_res, sort_keys=True, default=str)),
-                    },
-                    "audit_trail": {
-                        "model_version": self.MODEL_VERSION,
-                        "prompt_version": self.PROMPT_VERSION,
-                        "classifier_schema": self.CLASSIFIER_SCHEMA_VERSION,
-                        "stt_metadata": pipeline_res.get("stt_metadata", {}),
-                        "ml_score": {"probability": case_data.get("risk_score", 0.0)},
-                    },
-                    "violations": pipeline_res.get("violations", []),
-                    "final_status": case_data.get("status", "OPEN"),
-                    "chain_of_custody_verified": True,
-                }
-                self._evidence_records[case_id] = reconstructed
-                return reconstructed
-        except Exception as e:
-            logger.error(f"EVIDENCE VAULT: DB lookup failed for {case_id}: {e}")
-
-        return None
+        """Retrieve court-admissible evidence record by case_id."""
+        return self._evidence_records.get(case_id)
 
     def reset(self):
         """Reset vault data (used in unit tests)."""
