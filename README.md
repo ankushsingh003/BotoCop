@@ -1,25 +1,28 @@
-# BotoCop — Cross-Channel Fraud Detection Intelligence Engine & APM Platform
+# BotoCop — Cross-Channel Fraud Detection Intelligence Engine
 
-BotoCop ingests events from four independent channels — video ads, banking transactions, phone calls, and text/email — audits each one for fraud/compliance violations, and correlates evidence *across* channels into persistent cases, so a scam call followed by a matching wire transfer gets caught as one coordinated pattern instead of two unrelated flags.
+BotoCop ingests events from four independent channels — video ads, banking
+transactions, phone calls, and text/email — audits each one for
+fraud/compliance violations, and correlates evidence *across* channels into
+persistent cases, so a scam call followed by a matching wire transfer gets
+caught as one coordinated pattern instead of two unrelated flags.
 
-A single orchestrator sits on top of four specialist pipelines, backed by a case-management SQL storage layer, an LLM-as-judge eval loop, a data lake, an empirical Machine Learning model with online HITL retraining, a distributed Redis velocity tracker, an immutable chain-of-custody evidence vault, and an enterprise APM & Forensic Analytics Dashboard — reachable over REST, WebSocket, or Kafka, with Prometheus/Grafana monitoring.
+A single orchestrator sits on top of four specialist pipelines, backed by a
+case-management layer, an LLM-as-judge eval loop, a data lake, and a
+Spark-based batch retraining job — reachable over WebSocket or Kafka, with
+Prometheus/Grafana monitoring and an offline eval harness with a golden
+dataset.
 
----
-
-## Architecture Overview
+## Architecture
 
 ```mermaid
 flowchart TB
-    subgraph Ingestion & Interface
-        UI["APM Analytics Dashboard<br/>(/analytics, /dashboard)"]
+    subgraph Ingestion
         WS["WebSocket /ws/events"]
         KAFKA["Kafka consumer<br/>(4 topics, one per channel)"]
     end
 
-    UI --> REST["FastAPI Server<br/>(backend/src/api/server.py)"]
     WS --> ORCH
     KAFKA --> ORCH
-    REST --> ORCH
 
     ORCH["Orchestrator<br/>handle_event()"] --> LINK["Entity linker<br/>(by account_id / phone / email)"]
     LINK --> CASE["Case store (Postgres/SQLite)<br/>open case or create new"]
@@ -27,18 +30,8 @@ flowchart TB
     ORCH --> PIPE{Route by channel}
     PIPE --> P1["Video compliance<br/>(RAG + LLM)"]
     PIPE --> P2["Transaction fraud<br/>(RAG + LLM)"]
-    PIPE --> P3["Call fraud pipeline<br/>(Gemini STT + ML + LLM)"]
+    PIPE --> P3["Call fraud<br/>(LLM, direct)"]
     PIPE --> P4["Text/email fraud<br/>(LLM, direct)"]
-
-    subgraph Call Defense Engine
-        STT["Gemini Multimodal STT<br/>(Verbatim Audio Transcription)"]
-        VEL["Distributed Velocity Tracker<br/>(Redis ZSET + DB Fallback)"]
-        ML["RandomForest ML Classifier<br/>(CSV Dataset + Online HITL Retraining)"]
-        GRAPH["Identity Resolution Graph<br/>(SQL Case Correlation)"]
-        VAULT["Immutable Evidence Vault<br/>(SHA-256 Hash + Disk JSON)"]
-    end
-
-    P3 --> STT & VEL & ML & GRAPH & VAULT
 
     P1 & P2 & P3 & P4 --> EVAL["Eval agent (LLM judge)<br/>per-event confidence + bounded retry"]
     EVAL --> CASE
@@ -48,110 +41,163 @@ flowchart TB
 
     ORCH -.->|"archive every event"| LAKE["Data lake (MinIO/S3)<br/>partitioned by channel + date"]
     LAKE --> SPARK["Spark batch job<br/>feature engineering + retrain"]
+    SPARK --> MODEL["Isolation Forest model<br/>(alt. ML path, not default-wired)"]
 
     ORCH -.->|metrics| PROM["Prometheus /metrics"]
-    PROM --> GRAF["Grafana telemetry suite"]
+    PROM --> GRAF["Grafana dashboard"]
+
+    GOLDEN["Golden dataset (12 labeled examples)"] --> EVALHARNESS["Offline eval harness<br/>precision/recall + judge-alignment check"]
+    EVALHARNESS -.-> P1 & P2 & P3 & P4
 ```
 
----
+## What each layer actually does
 
-## Detailed System Component Breakdown
-
-| Layer / Component | Implementation | Production Architecture & Behavior |
+| Layer | What it does | Why |
 |---|---|---|
-| **Enterprise APM Dashboard** | `backend/src/api/static/analytics.html` | Real-time forensic web UI serving dynamic multi-factor fraud attribution heatmaps, live call search, forensic transcript inspection, 6-panel APM metrics, and Human-in-the-Loop (HITL) analyst review. Accessible via `/analytics` and `/dashboard`. |
-| **Call Fraud STT Engine** | `backend/src/pipelines/call_fraud/stt_engine.py` | Speech-to-Text engine using **Gemini Multimodal API (`gemini-3.6-flash`)** to transcribe verbatim speech directly from audio recordings (`.mp3`/`.wav`), perform Indic language detection (Hinglish/Hindi/English), and normalize text for downstream feature extraction. |
-| **Distributed Velocity Tracker** | `backend/src/pipelines/call_fraud/velocity_analyzer.py` | Tracks sliding 1-hour call velocity, distinct target counts, and fan-out ratios using **Redis Sorted Sets (`ZSET`)**. Supports multi-instance horizontal load-balancing with automatic fallback to persistent SQL `CaseStore` events. |
-| **Machine Learning Classifier** | `backend/src/pipelines/call_fraud/ml_model.py` | Calibrated `RandomForestClassifier` initialized on empirical call fraud data (`historical_call_fraud_dataset.csv`) and continually updated via `retrain_from_database_history()` on real SQL database cases and HITL analyst dispositions. |
-| **Identity Resolution Graph** | `backend/src/pipelines/call_fraud/identity_graph.py` | Performs cross-case identity correlation by querying real historical cases from the SQL database via `get_all_cases_for_entity()`. Links phone numbers, device IMEIs, IPs, and persisted Case UUIDs. |
-| **Chain-of-Custody Evidence Vault** | `backend/src/pipelines/call_fraud/evidence_store.py` | Cryptographically signed, tamper-evident audit store (`ChainOfCustodyVault`). Generates SHA-256 pipeline digests and writes immutable `.json` evidence packages directly to persistent disk storage (`evidence_vault/`) and SQL DB. |
-| **SQL Case Store** | `backend/src/case/store.py` | SQLAlchemy persistent storage (`Case` and `CaseEvent` models) backing cross-channel entity linking, state transitions (`OPEN`, `ESCALATED`, `STALE`), and risk score aggregation. |
-| **Eval Loop & LLM Judge** | `backend/src/orchestrator/eval_agent.py` | LLM-as-judge scores pipeline outputs for grounding and hallucination; executes bounded retries (max 3) if confidence falls below threshold. |
-| **Data Lake Storage** | `backend/src/datalake/s3_writer.py` | Archives raw event payloads to MinIO/S3 partitioned by `{channel}/dt=YYYY-MM-DD/` for offline batch ETL and Spark model retraining. |
+| **Orchestrator** | Single entry point (`handle_event`) for every event regardless of how it arrived | WebSocket and Kafka both call the exact same function — no duplicated logic between ingestion paths |
+| **Case layer** | Links events to a persistent case by entity ID, stores a timeline | Cases can stay open for days waiting for the next signal — this has to be real storage, not in-memory state |
+| **Eval agent** | LLM-as-judge scores each pipeline result; bounded retry (max 3) if not confident | Catches ungrounded/hallucinated outputs before they reach the case layer |
+| **Case judge** | Second-level judge, only invoked once 2+ channels have evidence | Decides whether cross-channel evidence is one coordinated fraud pattern or unrelated coincidence |
+| **Data lake** | Every processed event archived, partitioned `{channel}/dt=YYYY-MM-DD/` | Makes every live audit into future training data, not a one-off decision that's discarded |
+| **Spark job** | Reads the archive, engineers features at scale, hands off to scikit-learn for the final fit | Isolation Forest has no native Spark MLlib implementation — Spark does the part that needs to scale (ETL over the archive), sklearn does the small final fit |
+| **Eval harness** | Golden dataset + precision/recall + judge-alignment check | Regression testing for prompt/model changes, and a check on whether the judge's confidence is *correct*, not just how often it fires |
+| **Monitoring** | Prometheus metrics + Grafana dashboard | Throughput, violation rate, pipeline latency, retry rate, case transitions, live open-case count |
 
----
+## Key design decisions (and the tradeoffs behind them)
 
-## Technical Design Rationale & Tradeoffs
+- **RAG for video and transactions, direct LLM classification for calls and text.** Video and transactions get checked against reference documents (ad-spec PDFs, AML rulebooks) — that's a retrieval task. Calls and text are scam-pattern recognition in free text, which an LLM can do directly without a lookup step.
+- **An Isolation Forest transaction model exists but isn't the default.** It was built and tested first (structured numeric data is arguably a better fit for ML anomaly detection than RAG), then explicitly swapped back to RAG-based auditing. It's preserved at `pipelines/transaction_fraud/nodes_ml_isolation_forest.py` — tested, not deleted — because dropping validated work isn't the same as it being wrong for the *chosen* design.
+- **MinIO instead of literal HDFS.** Same conceptual role (a data lake feeding batch retraining) but MinIO is S3-API compatible, trivial to run as a single container, and reflects how new systems are actually built today rather than a 2015-era Hadoop pattern.
+- **Both WebSocket and Kafka exist, deliberately, not redundantly.** Kafka is the real production ingestion path — decoupled, replayable, backpressure-safe. WebSocket is genuinely useful for direct/interactive use (a demo, a dashboard, a single client). Both call the same orchestrator.
+- **Entity linking is scoped, not solved.** Cases are linked by an explicit shared identifier (`account_id`, `phone_number`, `sender_email`) already present in the event payload — not fuzzy cross-channel identity resolution (inferring that an email and a phone number belong to the same person with no shared key), which is a hard problem on its own and intentionally out of scope. See `case/linker.py`.
+- **The judge-alignment check exists because retry-rate alone is a bad signal.** Counting how often the eval agent asks for a retry says nothing about whether its verdicts are *correct*. `run_judge_eval()` specifically checks whether judge confidence correlates with actual correctness against the golden dataset — a judge that's always confident would look fine on retry-rate metrics alone.
+- **The video pipeline's retry is expensive, and that's a known, undecided tradeoff.** Retrying it re-runs the *entire* audit (download, transcription, both LLM passes), not just the failed part. Left as-is rather than over-engineering a partial-retry/caching layer before there's a real need for one.
 
-1. **Enterprise Dashboard Integration (`/analytics`)**:
-   - The web console provides real-time visibility into the dynamic fraud attribution heatmap (visualizing high-impact factors like Digital Arrest intent and velocity moving faster than context variables), searchable SHA-256 evidence packages, and HITL analyst feedback loops.
-
-2. **Multimodal Audio Transcription**:
-   - Audio recordings are processed using Gemini's native audio capabilities (`gemini-3.6-flash`), eliminating canned mock fallbacks and producing verbatim Indic transcripts with English translation.
-
-3. **Horizontal Scaling for Velocity Analysis**:
-   - Using Redis ZSET keys (`bocop:vel:hist:{caller_phone}`) prevents sliding window degradation when deploying behind horizontal load balancers (e.g. Nginx, Kubernetes ingress).
-
-4. **Empirical Dataset + Online Retraining**:
-   - The Random Forest classifier is initialized from empirical historical fraud CSVs and continuously retrained on analyst dispositions (`retrain_from_database_history()`), ensuring model weights adapt to emerging attack vectors.
-
-5. **Tamper-Evident Evidence Vault**:
-   - Evidence records are saved as immutable JSON packages on disk (`data/evidence_vault/*.json`) with cryptographic SHA-256 digests of audio, transcript, and feature payloads for court and legal admissibility.
-
----
-
-## Repository Structure
+## Repo structure
 
 ```
 backend/
   src/
-    api/
-      server.py                   FastAPI REST app (/analytics, /ws/events, /metrics, /api/v1/...)
-      static/analytics.html       Enterprise APM & Forensic Intelligence Dashboard
-    orchestrator/                 handle_event(), eval_agent.py (LLM judge)
-    case/                         models, store (SQL CRUD), linker, aggregator
+    api/server.py              FastAPI app: REST + /ws/events + /metrics
+    orchestrator/               handle_event(), eval_agent.py (LLM judge)
+    case/                       models, store (CRUD), linker (entity resolution), aggregator (risk scoring)
     pipelines/
-      video_compliance/           RAG + LLM ad compliance pipeline
-      transaction_fraud/          RAG + LLM wire fraud pipeline
-      call_fraud/                 Telephony fraud pipeline:
-        stt_engine.py             Gemini Multimodal STT & Indic translation
-        velocity_analyzer.py     Redis ZSET distributed sliding-window tracker
-        ml_model.py              RandomForest ML model with online DB retraining
-        identity_graph.py        SQL-backed identity resolution graph
-        evidence_store.py        Immutable SHA-256 Evidence Vault (disk JSON + DB)
-        data/                     empirical CSV datasets & disk evidence vault
-      text_fraud/                 Direct LLM text/phishing classification
-    ingestion/                    Kafka consumer/producer
-    datalake/                     MinIO/S3 archive writer
-    monitoring/metrics.py         Prometheus metric definitions
-  eval/                           Golden dataset & offline eval harness
-monitoring/                       Docker-Compose (Prometheus + Grafana)
-tests/                            Unit & integration test suite (39 tests)
+      video_compliance/         wraps the original video audit graph
+      transaction_fraud/        RAG+LLM (nodes.py) and the alt ML path (nodes_ml_isolation_forest.py)
+      call_fraud/                direct LLM classification
+      text_fraud/                 direct LLM classification
+    ingestion/                  Kafka consumer/producer
+    datalake/                   MinIO/S3 writer
+    monitoring/metrics.py       Prometheus metric definitions
+    synthetic/generator.py      synthetic normal/fraud data + correlated fraud-case generator
+    rag/, graph/                original video pipeline (RAG retriever, LangGraph nodes) -- unchanged
+  eval/
+    golden_dataset.py           12 labeled examples, incl. borderline cases
+    run_eval.py                 precision/recall scoring, judge-alignment check, run-log tracking
+  spark/train_transaction_model_spark.py   batch retraining job for the alt ML path
+  scripts/
+    train_transaction_model.py  local (non-Spark) trainer for the alt ML path
+    stream_synthetic_events.py  publishes synthetic events onto Kafka for live demos
+  data/                         rule PDFs, trained models
+monitoring/
+  docker-compose.yml            Prometheus + Grafana
+  prometheus.yml
+  grafana/provisioning/         datasource + dashboard auto-provisioning
+tests/                          32 tests, see "Testing" below
+```
+
+## Setup
+
+```bash
+git clone <this repo>
+cd BotoCop-master
+pip install -r requirements.txt --break-system-packages   # or use a venv
+```
+
+Environment variables:
+
+| Variable | Default | Used by |
+|---|---|---|
+| `GEMINI_API_KEY` | -- (required) | All four pipelines, both eval judges |
+| `GEMINI_MODEL_NAME` | `gemini-2.0-flash` | All LLM calls |
+| `CASE_DATABASE_URL` | `sqlite:///./backend/data/cases.db` | Case store -- point at Postgres in production |
+| `KAFKA_BOOTSTRAP_SERVERS` | `localhost:9092` | Kafka consumer/producer |
+| `KAFKA_TRANSACTION_TOPIC` / `_CALL_TOPIC` / `_TEXT_TOPIC` / `_VIDEO_TOPIC` | `fraud.{channel}.events` | Kafka topic names |
+| `MINIO_ENDPOINT` | `http://localhost:9000` | Data lake writer -- unset it to use real AWS S3 defaults instead |
+| `MINIO_ACCESS_KEY` / `MINIO_SECRET_KEY` | `minioadmin` | Data lake writer |
+| `DATALAKE_BUCKET` | `botocop-datalake` | Data lake writer |
+
+Initialize the case DB and (if using the alt ML path) train the anomaly model:
+
+```bash
+PYTHONPATH=. python -c "from backend.src.case.db import init_db; init_db()"
+PYTHONPATH=. python backend/scripts/train_transaction_model.py   # optional, only for the alt ML path
+```
+
+## Running it
+
+```bash
+uvicorn backend.src.api.server:app --reload
+```
+
+- `GET /api/health` -- health check
+- `GET /metrics` -- Prometheus scrape endpoint
+- `WS /ws/events` -- send `{"channel": "transaction"|"call"|"text"|"video", "payload": {...}}`, get back `{"status": "ok", "result": {...}}`
+
+Kafka path (needs a running broker, e.g. `docker run -p 9092:9092 apache/kafka`):
+
+```bash
+python -m backend.src.ingestion.kafka_consumer          # in one terminal
+python backend/scripts/stream_synthetic_events.py        # in another -- streams synthetic events, ~10% correlated fraud cases
+```
+
+## Monitoring
+
+```bash
+cd monitoring && docker compose up
+```
+
+Grafana at `localhost:3000` (admin/admin) comes pre-provisioned with a dashboard: throughput by channel, violations by severity, pipeline latency p50/p95, eval-retry rate, case status transitions, case risk score distribution, and live open-case count.
+
+## Testing
+
+```bash
+PYTHONPATH=. pytest tests/ -v
+```
+
+32 tests pass without any external dependency (no `GEMINI_API_KEY`, no live Kafka/MinIO/Postgres broker needed) -- LLM calls, Kafka, and S3 are mocked or dependency-injected where the sandbox this was built in had no network path to them. Real, unmocked coverage includes:
+- RAG retrieval against local Chroma vector stores (finance/AML rulebooks).
+- PostgreSQL case store reads, writes, and status transitions via SQLAlchemy against an in-memory SQLite backend.
+- PromQL counter/histogram metric emissions.
+- End-to-end WebSocket `/ws/events` message roundtrips and multi-event case linking.
+
+To run the test suite locally:
+```bash
+pytest
+```
+
+To run the offline golden-dataset evaluation harness against live Gemini models:
+```bash
+PYTHONPATH=. python -m backend.eval.run_eval    # requires GEMINI_API_KEY
 ```
 
 ---
 
-## Setup & Running the Engine
+## Known Limits
 
-### 1. Environment Setup
-```bash
-git clone https://github.com/ankushsingh003/BotoCop.git
-cd BotoCop
-pip install -r requirements.txt
-```
+- **This was built and tested against mocked/local infrastructure** (no live Gemini, Kafka, MinIO, or Postgres in the sandbox it was built in) -- deploying against the real services is the next real-world test, not yet done.rd-matching), reports precision/recall/F1 per channel, appends a summary to `backend/eval/eval_runs.jsonl` for tracking across runs, and separately reports whether the eval judge's confidence actually correlates with correctness.
 
-Set Environment Variables:
-```env
-GEMINI_API_KEY=your_gemini_api_key
-CASE_DATABASE_URL=sqlite:///./backend/data/cases.db
-REDIS_URL=redis://localhost:6379/0
-```
+## Known limitations
 
-### 2. Initialize Database
-```bash
-python -c "from backend.src.case.db import init_db; init_db()"
-```
+- **Entity linking is exact-match only** (shared account ID/phone/email), not fuzzy cross-channel identity resolution -- documented as an intentional scope boundary, not an oversight.
+- **The video pipeline's retry cost is unaddressed** -- a full re-run (download + transcription + both LLM passes) per retry attempt.
+- **No ground-truth feedback loop from real outcomes** -- cases don't get updated with "this turned out to actually be fraud/not fraud" after the fact, so the golden dataset is currently the only source of truth for accuracy, not live case resolutions.
+- **No cost/token tracking per LLM call** -- a real concern once this runs at volume, not yet instrumented.
+- **This was built and tested against mocked/local infrastructure** (no live Groq, Kafka, MinIO, or Postgres in the sandbox it was built in) -- deploying against the real services is the next real-world test, not yet done.
 
-### 3. Start API & APM Analytics Server
-```bash
-uvicorn backend.src.api.server:app --host 0.0.0.0 --port 8000 --reload
-```
+## Roadmap
 
-- **APM Analytics Dashboard**: Access **`http://localhost:8000/analytics`**
-- **Prometheus Metrics**: Access **`http://localhost:8000/metrics`**
-- **WebSocket Gateway**: Connect to **`ws://localhost:8000/ws/events`**
-
-### 4. Run Unit Tests
-```bash
-pytest tests/ -v
-```
+- Ground-truth feedback loop (case resolution outcomes feeding back into the golden dataset)
+- Per-call cost/token tracking, surfaced in Prometheus
+- Category-level (not just fraud/not-fraud) scoring in the eval harness
+- Partial-retry/caching for the video pipeline to avoid full re-runs on retry
