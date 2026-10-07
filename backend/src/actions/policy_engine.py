@@ -20,7 +20,8 @@ In a real bank, this module would call the payment gateway's
 hold/release API. Here we simulate the decision and log it.
 """
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
+import uuid
 from typing import Optional, Dict, Any, List
 
 logger = logging.getLogger("action-engine")
@@ -105,6 +106,7 @@ class ActionDecision:
             "reason": self.reason,
             "priority": self.priority,
             "decided_at": self.decided_at.isoformat(),
+            "expires_at": (self.decided_at + timedelta(minutes=30)).isoformat() if "hold" in self.actions else None
         }
 
 
@@ -114,12 +116,10 @@ _action_log: List[Dict[str, Any]] = []
 
 def evaluate_action(case_data: Optional[Dict], event_data: Dict) -> ActionDecision:
     """
-    Run the event through all action policies and return the highest
-    priority action that matches. This is the function the payment
-    gateway would call before authorizing a transfer.
-    
-    Designed to be very fast (no LLM, no network calls, just dict lookups)
-    so it can sit in the transaction authorization path.
+    Decides what to do (hold, warn, step-up) based on the customer's current fraud risk.
+    It runs through a list of simple if-then rules to find the highest priority action.
+    This is extremely fast because it doesn't use the AI.
+    Calls nothing external, just checks dictionaries.
     """
     if case_data is None:
         # No open case for this customer, let it through
@@ -158,9 +158,11 @@ def evaluate_action(case_data: Optional[Dict], event_data: Dict) -> ActionDecisi
     
     # Log the action for audit trail
     log_entry = {
+        "id": str(uuid.uuid4()),
         "case_id": case_data.get("case_id"),
         "entity_id": case_data.get("entity_id"),
         "event_channel": event_data.get("channel"),
+        "status": "active" if "hold" in decision.actions else "completed",
         **decision.to_dict(),
     }
     _action_log.append(log_entry)
@@ -174,9 +176,9 @@ def evaluate_action(case_data: Optional[Dict], event_data: Dict) -> ActionDecisi
 
 def execute_actions(decision: ActionDecision, entity_id: str) -> Dict[str, Any]:
     """
-    Actually carry out the actions. In a real bank this would call
-    external APIs (payment gateway, SMS service, etc). Here we
-    simulate and log what would happen.
+    Actually performs the protective actions like freezing the account or sending an SMS warning.
+    In a real bank, this is the function that talks to the payment systems.
+    Currently simulates the action and logs it.
     """
     results = {}
     
@@ -222,5 +224,28 @@ def execute_actions(decision: ActionDecision, entity_id: str) -> Dict[str, Any]:
 
 
 def get_action_log() -> List[Dict[str, Any]]:
-    """Return all action decisions taken (for the dashboard/audit trail)."""
+    """
+    Retrieves the history of all protective actions the system has taken.
+    Used to display the 'Action Log' on the dashboard.
+    Calls nothing, just reads a list from memory.
+    """
     return list(_action_log)
+
+
+def auto_release_expired_holds():
+    """
+    Worker for Gap 12 (False-positive harm).
+    Scans the action log for 'hold' actions that have exceeded their 30-minute SLA.
+    If no analyst has acted, the hold is auto-released to prevent money sitting in limbo.
+    """
+    now = datetime.now(timezone.utc)
+    for entry in _action_log:
+        if entry.get("status") == "active" and "hold" in entry.get("actions", []):
+            expires_str = entry.get("expires_at")
+            if expires_str:
+                expires_at = datetime.fromisoformat(expires_str)
+                if now > expires_at:
+                    logger.warning(f"Hold SLA expired for entity {entry.get('entity_id')} (case {entry.get('case_id')}). Auto-releasing hold.")
+                    entry["status"] = "auto_released"
+                    entry["release_reason"] = "SLA expired without analyst intervention"
+                    # In production: call payment_gateway.release_transaction(txn_id)
