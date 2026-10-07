@@ -38,41 +38,33 @@ class CaseEvalModel(BaseModel):
     reasoning: str = Field(description="Brief justification citing which channels/evidence support the conclusion")
 
 
+from backend.src.orchestrator.llm_gateway import get_gateway, LLMUnavailable
+
 def is_valid_gemini_key(api_key: Optional[str]) -> bool:
+    """
+    Checks if we actually have a real AI key configured, or just a dummy placeholder.
+    Calls nothing. Used internally before trying to contact the AI.
+    """
     if not api_key:
         return False
     clean = api_key.strip()
     return clean not in ("your-gemini-api-key-here", "", "None") and not clean.startswith("your-") and len(clean) > 15
 
 
-def _get_llm():
-    api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
-    model_name = os.getenv("GEMINI_MODEL_NAME", "gemini-3.7-flash")
-
-    return ChatGoogleGenerativeAI(model=model_name, temperature=0.0, google_api_key=api_key)
-
-
-def _extract_json(text: str) -> dict:
-    start_idx = text.find("{")
-    end_idx = text.rfind("}")
-    json_str = text[start_idx:end_idx + 1] if start_idx != -1 and end_idx != -1 else text
-    return json.loads(json_str)
-
-
 def evaluate_event(pipeline_result: Dict[str, Any], retrieved_rules: Optional[str] = None) -> EventEvalModel:
-    """Per-event judge: is this one pipeline result trustworthy enough to keep?"""
+    """
+    Per-event judge: Asks the AI if the single pipeline result is trustworthy enough to keep.
+    Calls the Google Gemini AI API via _get_llm.
+    """
     api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
     if not is_valid_gemini_key(api_key):
         logger.info("Valid GEMINI_API_KEY not configured. Using high-confidence rule-based ML evaluation.")
         return EventEvalModel(is_confident=True, confidence_score=0.92, feedback="")
 
     try:
-        llm = _get_llm()
-        cache_buster = str(uuid.uuid4())
-
-        system_prompt = f"Session ID: {cache_buster}. You are a strict compliance QA reviewer."
-        content = f"""Request ID: {cache_buster}
-Review this fraud/compliance pipeline output for grounding and relevance.
+        gateway = get_gateway()
+        system_prompt = "You are a strict compliance QA reviewer."
+        content = f"""Review this fraud/compliance pipeline output for grounding and relevance.
 
 <retrieved_rules>
 {retrieved_rules or "N/A"}
@@ -88,22 +80,35 @@ and are they relevant (not generic boilerplate)?
 Output ONLY JSON, no preamble:
 {{"is_confident": true/false, "confidence_score": 0.0-1.0, "feedback": "..."}}"""
 
-        response = llm.invoke([SystemMessage(content=system_prompt), HumanMessage(content=content)])
-        data = _extract_json(response.content)
-        return EventEvalModel(**data)
-    except Exception as e:
-        logger.error(f"Event eval failed (LLM down?): {e}")
-        # Explicit degraded mode: fail open, but flag it
+        return gateway.invoke(
+            task="event_audit",
+            system_prompt=system_prompt,
+            user_prompt=content,
+            schema=EventEvalModel
+        )
+    except LLMUnavailable:
+        logger.error("Event eval failed due to LLM gateway unavailability")
+        # Explicit degraded mode per instructions: ML score and rules decide, flag llm_skipped
         return EventEvalModel(
             is_confident=True, 
             confidence_score=0.0, 
-            feedback="judge_unavailable: fallback to deterministic pipeline result"
+            feedback="llm_skipped: fallback to deterministic pipeline result"
+        )
+    except Exception as e:
+        logger.error(f"Event eval failed: {e}")
+        return EventEvalModel(
+            is_confident=True, 
+            confidence_score=0.0, 
+            feedback="llm_skipped: fallback to deterministic pipeline result"
         )
 
 
 def evaluate_case(case: Dict[str, Any]) -> CaseEvalModel:
-    """Per-case judge: does the combination of evidence across channels indicate
-    one coordinated fraud pattern, or unrelated coincidences?"""
+    """
+    Per-case judge: Looks at all events across all channels (phone, bank) for one customer.
+    Asks the AI if this combination proves a coordinated scam is happening.
+    Calls the Google Gemini AI API via _get_llm.
+    """
     api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
     if not is_valid_gemini_key(api_key):
         logger.info("Valid GEMINI_API_KEY not configured. Rule-based evaluation indicates multi-channel correlation check.")
@@ -115,15 +120,9 @@ def evaluate_case(case: Dict[str, Any]) -> CaseEvalModel:
         )
 
     try:
-        llm = _get_llm()
-        cache_buster = str(uuid.uuid4())
-
-        system_prompt = (
-            f"Session ID: {cache_buster}. You are a senior fraud investigator reviewing "
-            f"a case file that spans multiple channels."
-        )
-        content = f"""Request ID: {cache_buster}
-Review this case's cross-channel evidence timeline.
+        gateway = get_gateway()
+        system_prompt = "You are a senior fraud investigator reviewing a case file that spans multiple channels."
+        content = f"""Review this case's cross-channel evidence timeline.
 
 <case>
 {json.dumps(case, indent=2, default=str)}
@@ -136,12 +135,22 @@ coincidental flags.
 Output ONLY JSON, no preamble:
 {{"is_coordinated_fraud": true/false, "confidence_score": 0.0-1.0, "reasoning": "..."}}"""
 
-        response = llm.invoke([SystemMessage(content=system_prompt), HumanMessage(content=content)])
-        data = _extract_json(response.content)
-        return CaseEvalModel(**data)
+        return gateway.invoke(
+            task="case_judge",
+            system_prompt=system_prompt,
+            user_prompt=content,
+            schema=CaseEvalModel
+        )
+    except LLMUnavailable:
+        logger.error("Case eval failed due to LLM gateway unavailability")
+        # Explicit degraded mode per instructions: If deterministic risk is high, set pending_review
+        return CaseEvalModel(
+            is_coordinated_fraud=False, 
+            confidence_score=0.0, 
+            reasoning="judge_unavailable"
+        )
     except Exception as e:
-        logger.error(f"Case eval failed (LLM down?): {e}")
-        # Explicit degraded mode: flag as error so orchestrator can push high-risk cases to human
+        logger.error(f"Case eval failed: {e}")
         return CaseEvalModel(
             is_coordinated_fraud=False, 
             confidence_score=0.0, 
