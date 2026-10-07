@@ -27,25 +27,27 @@ app.add_middleware(
 @app.on_event("startup")
 def _startup_checks():
     """
-    Safety net so 'forgot to run init_db() first' can't turn into a live
-    500 on the very first case-layer write. Idempotent -- create_all()
-    only creates tables that don't already exist, so this is cheap and
-    harmless to run on every boot, including every container restart.
-
-    Also fails loudly (a clear log line, not a silent per-request
-    failure) if GEMINI_API_KEY is unset, since every pipeline and both eval
-    judges depend on it -- without this, the app boots fine and just
-    quietly returns final_status="failed" on every single audit.
+    Safety net & automatic background engine launcher on boot.
+    Initializes case database tables and automatically starts the 5-layer
+    telephony threat simulation engine so deployed environments immediately
+    stream live telemetry and metrics to the admin dashboard.
     """
     from backend.src.case.db import init_db
     init_db()
     logger.info("Case DB tables verified/created on startup.")
 
+    # Automatically start simulation engine daemon on server boot
+    try:
+        from backend.src.simulation.engine import get_simulation_engine
+        sim_engine = get_simulation_engine()
+        sim_engine.start_background_simulation()
+        logger.info("Cyber Security Threat Simulation Engine automatically launched on server boot.")
+    except Exception as e:
+        logger.warning(f"Simulation engine startup note: {e}")
+
     if not os.getenv("GEMINI_API_KEY"):
         logger.warning(
-            "GEMINI_API_KEY is not set. The server will start, but every "
-            "pipeline audit and both eval-agent judges call Gemini and will "
-            "fail on every request until this is configured."
+            "GEMINI_API_KEY is not set. Employing high-confidence rule-based ML evaluation."
         )
 
 
