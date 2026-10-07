@@ -1,0 +1,6 @@
+.venv/
+.git/
+monitoring/
+datalake_storage/
+backend/data/
+*.db
