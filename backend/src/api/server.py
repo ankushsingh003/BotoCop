@@ -197,8 +197,111 @@ async def get_case_evidence(case_id: str):
     return {"status": "ok", "evidence": record}
 
 
+# --- SOC Simulation Engine & Real-Time Threat Feed Endpoints ---
+class ScenarioInjectRequest(BaseModel):
+    scenario: str = "digital_arrest"
+
+
+class IntervalRequest(BaseModel):
+    seconds: float = 6.0
+
+
+@app.get("/api/simulation/status")
+async def get_simulation_status():
+    from backend.src.simulation.engine import get_simulation_engine
+    return get_simulation_engine().get_status()
+
+
+@app.post("/api/simulation/toggle")
+async def toggle_simulation():
+    from backend.src.simulation.engine import get_simulation_engine
+    engine = get_simulation_engine()
+    engine.set_running(not engine.is_running)
+    return engine.get_status()
+
+
+@app.post("/api/simulation/interval")
+async def set_simulation_interval(req: IntervalRequest):
+    from backend.src.simulation.engine import get_simulation_engine
+    engine = get_simulation_engine()
+    engine.set_interval(req.seconds)
+    return engine.get_status()
+
+
+@app.post("/api/simulation/inject")
+async def inject_simulation_scenario(req: ScenarioInjectRequest):
+    from backend.src.simulation.engine import get_simulation_engine
+    engine = get_simulation_engine()
+    result = engine.inject_scenario(req.scenario)
+    return {"status": "ok", "event": result}
+
+
+@app.post("/api/simulation/reset")
+async def reset_simulation_stats():
+    from backend.src.simulation.engine import get_simulation_engine
+    engine = get_simulation_engine()
+    engine.reset_stats()
+    return engine.get_status()
+
+
+@app.get("/api/threats/live")
+async def get_live_threats():
+    from backend.src.simulation.engine import get_simulation_engine
+    engine = get_simulation_engine()
+    return {"status": "ok", "threats": list(engine.recent_events)}
+
+
+@app.get("/api/threats/stats")
+async def get_threat_stats():
+    from backend.src.case.store import get_case_statistics
+    from backend.src.pipelines.call_fraud.hitl_queue import get_hitl_queue
+    from backend.src.pipelines.call_fraud.blocklist import get_scam_blocklist
+    from backend.src.simulation.engine import get_simulation_engine
+
+    engine = get_simulation_engine()
+    db_stats = get_case_statistics()
+    queue = get_hitl_queue()
+    bl = get_scam_blocklist()
+
+    return {
+        "status": "ok",
+        "simulation": engine.get_status(),
+        "database": db_stats,
+        "pending_hitl_count": len(queue.get_pending_reviews()),
+        "blocklist_count": len(bl._blocklist),
+    }
+
+
+@app.get("/api/cases/recent")
+async def get_recent_cases_endpoint(limit: int = 20):
+    from backend.src.case.store import get_recent_cases
+    cases = get_recent_cases(limit=limit)
+    return {"status": "ok", "cases": cases}
+
+
+@app.get("/api/cases/{case_id}")
+async def get_case_details_endpoint(case_id: str):
+    from backend.src.case.store import get_case_with_events
+    case = get_case_with_events(case_id)
+    if not case:
+        raise HTTPException(status_code=404, detail="Case not found")
+    return {"status": "ok", "case": case}
+
+
 @app.get("/")
-async def root():
+@app.get("/admin", response_class=HTMLResponse)
+@app.get("/analytics", response_class=HTMLResponse)
+@app.get("/dashboard", response_class=HTMLResponse)
+async def serve_dashboard():
+    """Serve live BotoCop Telephony Fraud Engine SOC Dashboard UI."""
+    analytics_file = STATIC_DIR / "analytics.html"
+    if analytics_file.exists():
+        return FileResponse(analytics_file)
+    return HTMLResponse("<h2>BotoCop SOC Security Dashboard loading...</h2>")
+
+
+@app.get("/api")
+async def root_api():
     return {
         "status": "botocop-api online",
         "message": "BotoCop Fraud Engine active with automated 5-Layer ML Call Fraud Pipeline.",
@@ -209,10 +312,16 @@ async def root():
             "/api/v1/hitl/resolve",
             "/api/v1/blocklist",
             "/api/v1/evidence/{case_id}",
+            "/api/simulation/status",
+            "/api/simulation/inject",
+            "/api/threats/live",
+            "/api/threats/stats",
+            "/api/cases/recent",
             "/health",
             "/metrics"
         ]
     }
+
 
 
 

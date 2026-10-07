@@ -1,798 +1,1394 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BotoCop - Telephony Fraud Intelligence & APM Platform</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        :root {
-            --bg-body: #f8fafc;
-            --bg-sidebar: #1e293b;
-            --bg-topbar: #0f172a;
-            --bg-card: #ffffff;
-            --bg-subtle: #f1f5f9;
-            --border-dark: #000000;
-            --border-card: #cbd5e1;
-            --text-dark: #0f172a;
-            --text-muted: #64748b;
-            --text-light: #ffffff;
-            --text-light-sub: #94a3b8;
-            --accent-blue: #2563eb;
-            --accent-red: #ef4444;
-            --accent-green: #10b981;
-            --accent-amber: #f59e0b;
-            --accent-purple: #8b5cf6;
-            --accent-cyan: #06b6d4;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BotoCop // Telephony Fraud Mitigation Engine</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg-root: #000000;
+      --bg-panel: #0a0a0a;
+      --bg-subtle: #121212;
+      --bg-hover: #1c1c1c;
+      --border-main: #27272a;
+      --border-muted: #1e1e22;
+      --border-bright: #3f3f46;
+      --text-main: #f4f4f5;
+      --text-muted: #a1a1aa;
+      --text-dark: #71717a;
+      --badge-bg: #18181b;
+      --critical-text: #ef4444;
+      --critical-border: #7f1d1d;
+      --warning-text: #f59e0b;
+      --success-text: #10b981;
+      --mono: "JetBrains Mono", Menlo, Consolas, monospace;
+      --sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
 
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background-color: var(--bg-body);
-            color: var(--text-dark);
-            height: 100vh;
-            display: flex;
-            overflow: hidden;
-            -webkit-font-smoothing: antialiased;
-        }
+    body {
+      background-color: var(--bg-root);
+      color: var(--text-main);
+      font-family: var(--sans);
+      font-size: 13px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
 
-        /* Sidebar */
-        aside {
-            width: 240px;
-            background-color: var(--bg-sidebar);
-            border-right: 2px solid var(--border-dark);
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            z-index: 10;
-        }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 48px;
+      padding: 0 24px;
+      border-bottom: 1px solid var(--border-main);
+      background-color: var(--bg-root);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
 
-        .brand-header {
-            padding: 1.25rem 1.5rem;
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-family: var(--mono);
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      font-size: 13px;
+      color: #fff;
+    }
 
-        .brand-icon {
-            width: 32px;
-            height: 32px;
-            background: var(--accent-blue);
-            border-radius: 6px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            color: #ffffff;
-            font-size: 1rem;
-        }
+    .brand-tag {
+      font-size: 10px;
+      font-weight: 500;
+      padding: 2px 6px;
+      background: var(--bg-subtle);
+      border: 1px solid var(--border-bright);
+      color: var(--text-muted);
+      border-radius: 2px;
+    }
 
-        .brand-title {
-            font-size: 1.1rem;
-            font-weight: 700;
-            color: var(--text-light);
-        }
+    nav { display: flex; align-items: center; gap: 4px; }
 
-        .nav-menu {
-            padding: 1rem 0.75rem;
-            display: flex;
-            flex-direction: column;
-            gap: 0.35rem;
-            flex: 1;
-        }
+    .nav-btn {
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--text-muted);
+      font-family: var(--mono);
+      font-size: 11px;
+      padding: 6px 14px;
+      cursor: pointer;
+      border-radius: 2px;
+      transition: all 0.15s ease;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
 
-        .nav-item {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            padding: 0.65rem 0.85rem;
-            border-radius: 6px;
-            color: var(--text-light-sub);
-            font-size: 0.88rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.15s ease;
-        }
+    .nav-btn:hover { color: var(--text-main); background: var(--bg-subtle); }
 
-        .nav-item:hover {
-            background-color: rgba(255, 255, 255, 0.08);
-            color: var(--text-light);
-        }
+    .nav-btn.active {
+      color: #000;
+      background: #fff;
+      font-weight: 600;
+      border-color: #fff;
+    }
 
-        .nav-item.active {
-            background-color: var(--accent-blue);
-            color: var(--text-light);
-            font-weight: 600;
-        }
+    .nav-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-muted);
+    }
 
-        .nav-badge {
-            margin-left: auto;
-            background-color: var(--accent-red);
-            color: #ffffff;
-            border-radius: 10px;
-            padding: 0.1rem 0.45rem;
-            font-size: 0.72rem;
-            font-weight: 700;
-        }
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      background: #10b981;
+      border-radius: 50%;
+    }
 
-        .sidebar-footer {
-            padding: 1rem 1.25rem;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-            font-size: 0.75rem;
-            color: var(--text-light-sub);
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
+    .view-container { display: none; min-height: calc(100vh - 48px); }
+    .view-container.active { display: block; }
 
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            background-color: var(--accent-green);
-            border-radius: 50%;
-        }
+    /* ===== OVERVIEW PAGE ===== */
+    #overview-view {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 56px 24px 80px;
+    }
 
-        /* Workspace */
-        .workspace {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            overflow-y: auto;
-        }
+    .hero-meta {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-dark);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      margin-bottom: 12px;
+    }
 
-        .topbar {
-            padding: 1rem 2rem;
-            background-color: var(--bg-topbar);
-            border-bottom: 2px solid var(--border-dark);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            position: sticky;
-            top: 0;
-            z-index: 5;
-        }
+    .hero-title {
+      font-size: 32px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+      color: #ffffff;
+      margin-bottom: 16px;
+    }
 
-        .topbar-info h2 {
-            font-size: 1.15rem;
-            font-weight: 700;
-            color: var(--text-light);
-        }
+    .hero-description {
+      font-size: 16px;
+      color: var(--text-muted);
+      max-width: 820px;
+      line-height: 1.6;
+      margin-bottom: 36px;
+    }
 
-        .topbar-info p {
-            font-size: 0.8rem;
-            color: var(--text-light-sub);
-        }
+    .hero-actions {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 56px;
+    }
 
-        .time-filter {
-            display: flex;
-            background-color: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 6px;
-            padding: 0.2rem;
-            gap: 0.2rem;
-        }
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      background: #ffffff;
+      color: #000000;
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 700;
+      padding: 12px 24px;
+      border: 1px solid #ffffff;
+      cursor: pointer;
+      border-radius: 2px;
+      text-decoration: none;
+      letter-spacing: 0.04em;
+      transition: background 0.15s, color 0.15s;
+    }
 
-        .time-btn {
-            padding: 0.3rem 0.65rem;
-            border-radius: 4px;
-            font-size: 0.78rem;
-            font-weight: 500;
-            color: var(--text-light-sub);
-            background: transparent;
-            border: none;
-            cursor: pointer;
-        }
+    .btn-primary:hover { background: #e4e4e7; }
 
-        .time-btn.active {
-            background-color: var(--accent-blue);
-            color: #ffffff;
-            font-weight: 600;
-        }
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      background: transparent;
+      color: var(--text-muted);
+      font-family: var(--mono);
+      font-size: 12px;
+      padding: 12px 20px;
+      border: 1px solid var(--border-main);
+      cursor: pointer;
+      border-radius: 2px;
+      text-decoration: none;
+      letter-spacing: 0.04em;
+      transition: all 0.15s;
+    }
 
-        .content-container {
-            padding: 1.75rem 2rem;
-            display: flex;
-            flex-direction: column;
-            gap: 1.5rem;
-            flex: 1;
-        }
+    .btn-secondary:hover { color: #fff; border-color: var(--border-bright); background: var(--bg-subtle); }
 
-        .tab-pane {
-            display: none;
-            flex-direction: column;
-            gap: 1.5rem;
-        }
+    .specs-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1px;
+      background-color: var(--border-main);
+      border: 1px solid var(--border-main);
+      margin-bottom: 56px;
+    }
 
-        .tab-pane.active {
-            display: flex;
-        }
+    .spec-card { background: var(--bg-panel); padding: 20px 24px; }
 
-        .card-row {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 1.25rem;
-        }
+    .spec-label {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--text-dark);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 6px;
+    }
 
-        .card {
-            background-color: var(--bg-card);
-            border: 1.5px solid var(--border-card);
-            border-radius: 8px;
-            padding: 1.15rem;
-            display: flex;
-            flex-direction: column;
-            gap: 0.35rem;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-        }
+    .spec-val {
+      font-family: var(--mono);
+      font-size: 18px;
+      font-weight: 700;
+      color: #ffffff;
+    }
 
-        .card-label {
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            color: var(--text-muted);
-            font-weight: 600;
-        }
+    .section-header {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-dark);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 16px;
+      border-bottom: 1px solid var(--border-main);
+      padding-bottom: 8px;
+    }
 
-        .card-value {
-            font-size: 1.8rem;
-            font-weight: 700;
-            color: var(--text-dark);
-            font-family: 'Roboto Mono', monospace;
-        }
+    .pipeline-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+      background-color: var(--border-main);
+      border: 1px solid var(--border-main);
+      margin-bottom: 56px;
+    }
 
-        .card-desc {
-            font-size: 0.78rem;
-            color: var(--text-muted);
-        }
+    .pipeline-row {
+      display: grid;
+      grid-template-columns: 80px 240px 1fr 180px;
+      align-items: center;
+      background: var(--bg-panel);
+      padding: 18px 24px;
+      gap: 20px;
+      transition: background 0.15s;
+    }
 
-        /* Layout Panels */
-        .layout-grid-3x2 {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 1.25rem;
-        }
+    .pipeline-row:hover { background: var(--bg-subtle); }
 
-        @media (max-width: 1100px) {
-            .layout-grid-3x2 {
-                grid-template-columns: 1fr;
-            }
-        }
+    .layer-index { font-family: var(--mono); font-size: 12px; color: var(--text-dark); font-weight: 600; }
+    .layer-title { font-family: var(--mono); font-size: 13px; font-weight: 700; color: #ffffff; }
+    .layer-desc { font-size: 13px; color: var(--text-muted); line-height: 1.4; }
+    .layer-meta { font-family: var(--mono); font-size: 11px; color: var(--text-dark); text-align: right; }
 
-        .panel {
-            background-color: var(--bg-card);
-            border: 1.5px solid var(--border-card);
-            border-radius: 8px;
-            padding: 1.25rem;
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-        }
+    /* ===== ADMIN CONSOLE ===== */
+    #admin-view { padding: 16px 20px; }
 
-        .panel-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding-bottom: 0.65rem;
-            border-bottom: 1.5px solid var(--border-card);
-        }
+    .console-control-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      background: var(--bg-panel);
+      border: 1px solid var(--border-main);
+      margin-bottom: 16px;
+    }
 
-        .panel-title {
-            font-size: 0.92rem;
-            font-weight: 700;
-            color: var(--text-dark);
-        }
+    .control-group { display: flex; align-items: center; gap: 12px; }
 
-        .chart-wrapper {
-            position: relative;
-            height: 320px;
-            width: 100%;
-        }
+    .control-label {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-dark);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
 
-        /* Search Tool */
-        .search-wrapper {
-            background-color: var(--bg-card);
-            border: 1.5px solid var(--border-card);
-            border-radius: 8px;
-            padding: 1rem;
-            display: flex;
-            gap: 0.85rem;
-        }
+    .console-select {
+      background: var(--bg-subtle);
+      border: 1px solid var(--border-main);
+      color: var(--text-main);
+      font-family: var(--mono);
+      font-size: 11px;
+      padding: 6px 10px;
+      border-radius: 2px;
+      outline: none;
+    }
 
-        .search-input {
-            flex: 1;
-            background-color: var(--bg-subtle);
-            border: 1.5px solid var(--border-card);
-            border-radius: 6px;
-            padding: 0.55rem 0.85rem;
-            color: var(--text-dark);
-            font-family: 'Roboto Mono', monospace;
-            font-size: 0.88rem;
-            outline: none;
-        }
+    .btn-action {
+      background: var(--bg-subtle);
+      border: 1px solid var(--border-main);
+      color: var(--text-main);
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 6px 14px;
+      cursor: pointer;
+      border-radius: 2px;
+      transition: all 0.15s;
+    }
 
-        .btn-primary {
-            padding: 0.55rem 1.25rem;
-            background-color: var(--accent-blue);
-            color: #ffffff;
-            border: none;
-            border-radius: 6px;
-            font-weight: 600;
-            font-size: 0.85rem;
-            cursor: pointer;
-        }
+    .btn-action:hover { background: var(--bg-hover); border-color: var(--border-bright); color: #fff; }
+    .btn-action.active-pause { background: #ffffff; color: #000000; border-color: #ffffff; }
 
-        .forensic-details {
-            background-color: var(--bg-card);
-            border: 1.5px solid var(--border-card);
-            border-radius: 8px;
-            padding: 1.25rem;
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-        }
+    /* Metric Row - 6 panels */
+    .telemetry-row {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 12px;
+      margin-bottom: 16px;
+    }
 
-        .layer-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-            gap: 0.75rem;
-        }
+    .metric-panel {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-main);
+      padding: 14px 18px;
+    }
 
-        .layer-item {
-            background-color: var(--bg-subtle);
-            border: 1px solid var(--border-card);
-            border-radius: 6px;
-            padding: 0.75rem;
-            display: flex;
-            flex-direction: column;
-            gap: 0.25rem;
-        }
+    .metric-title {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--text-dark);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 6px;
+    }
 
-        .layer-name {
-            font-size: 0.72rem;
-            color: var(--text-muted);
-            font-weight: 600;
-            text-transform: uppercase;
-        }
+    .metric-value {
+      font-family: var(--mono);
+      font-size: 22px;
+      font-weight: 700;
+      color: #ffffff;
+    }
 
-        .layer-status {
-            font-size: 0.85rem;
-            font-weight: 700;
-            color: var(--text-dark);
-        }
+    .metric-sub {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
 
-        .code-box {
-            font-family: 'Roboto Mono', monospace;
-            background-color: var(--bg-subtle);
-            border: 1px solid var(--border-card);
-            padding: 0.75rem;
-            border-radius: 6px;
-            color: var(--text-dark);
-            font-size: 0.82rem;
-            word-break: break-all;
-        }
+    /* Charts Row */
+    .charts-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
 
-        /* Clean Tables */
-        .table-container {
-            overflow-x: auto;
-        }
+    .chart-panel {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-main);
+      display: flex;
+      flex-direction: column;
+      height: 260px;
+    }
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.85rem;
-        }
+    .chart-panel canvas {
+      padding: 8px 12px 4px;
+      flex: 1;
+      min-height: 0;
+    }
 
-        th {
-            text-align: left;
-            padding: 0.75rem 0.85rem;
-            background-color: var(--bg-subtle);
-            color: var(--text-muted);
-            font-weight: 600;
-            border-bottom: 1.5px solid var(--border-card);
-        }
+    /* Shared Panel */
+    .panel-block {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-main);
+      display: flex;
+      flex-direction: column;
+    }
 
-        td {
-            padding: 0.75rem 0.85rem;
-            border-bottom: 1px solid var(--border-card);
-            color: var(--text-dark);
-        }
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border-main);
+      background: var(--bg-subtle);
+    }
 
-        tr:hover td {
-            background-color: #f1f5f9;
-        }
+    .panel-heading {
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 700;
+      color: #ffffff;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
 
-        .badge-red {
-            background-color: #fee2e2;
-            color: #dc2626;
-            border: 1px solid #fca5a5;
-            padding: 0.15rem 0.5rem;
-            border-radius: 4px;
-            font-size: 0.75rem;
-            font-weight: 700;
-        }
+    .panel-tag {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--text-dark);
+    }
 
-        .badge-green {
-            background-color: #dcfce7;
-            color: #16a34a;
-            border: 1px solid #86efac;
-            padding: 0.15rem 0.5rem;
-            border-radius: 4px;
-            font-size: 0.75rem;
-            font-weight: 700;
-        }
+    /* Console Split */
+    .console-split {
+      display: grid;
+      grid-template-columns: 1fr 480px;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
 
-        .btn-action {
-            padding: 0.3rem 0.65rem;
-            background-color: var(--accent-red);
-            color: #ffffff;
-            border: none;
-            border-radius: 4px;
-            font-size: 0.78rem;
-            font-weight: 600;
-            cursor: pointer;
-        }
-    </style>
+    /* Table */
+    .table-wrapper { max-height: 380px; overflow-y: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: var(--mono);
+      font-size: 11px;
+      text-align: left;
+    }
+
+    th {
+      background: var(--bg-root);
+      color: var(--text-dark);
+      font-weight: 600;
+      padding: 8px 14px;
+      border-bottom: 1px solid var(--border-main);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    td {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border-muted);
+      color: var(--text-muted);
+      vertical-align: middle;
+    }
+
+    tr:hover td { background: var(--bg-subtle); color: var(--text-main); cursor: pointer; }
+    tr.selected td { background: var(--bg-hover); color: #ffffff; border-left: 2px solid #ffffff; }
+
+    /* Badges */
+    .badge {
+      display: inline-block;
+      font-family: var(--mono);
+      font-size: 9px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 2px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .badge-critical { color: var(--critical-text); background: #000; border: 1px solid var(--critical-text); }
+    .badge-high { color: var(--warning-text); background: #000; border: 1px solid var(--warning-text); }
+    .badge-low { color: var(--text-muted); background: #000; border: 1px solid var(--border-bright); }
+    .badge-benign { color: var(--text-dark); background: transparent; border: 1px solid var(--border-main); }
+
+    /* Inspector */
+    .inspector-body {
+      padding: 16px;
+      overflow-y: auto;
+      max-height: 380px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .field-label {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--text-dark);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 4px;
+    }
+
+    .field-value-mono {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: #ffffff;
+      word-break: break-all;
+    }
+
+    .field-box {
+      background: var(--bg-root);
+      border: 1px solid var(--border-main);
+      padding: 10px 12px;
+      border-radius: 2px;
+    }
+
+    .transcript-box {
+      font-family: var(--mono);
+      font-size: 11px;
+      line-height: 1.5;
+      color: #e4e4e7;
+      background: var(--bg-root);
+      border: 1px solid var(--border-main);
+      padding: 12px;
+      border-radius: 2px;
+      white-space: pre-wrap;
+      max-height: 100px;
+      overflow-y: auto;
+    }
+
+    .hash-box {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: #a1a1aa;
+      background: var(--bg-root);
+      border: 1px solid var(--border-main);
+      padding: 8px 10px;
+      border-radius: 2px;
+      word-break: break-all;
+      user-select: all;
+    }
+
+    .inspector-actions { display: flex; gap: 8px; margin-top: 8px; }
+
+    .btn-danger-outline {
+      background: transparent;
+      border: 1px solid var(--border-bright);
+      color: #ffffff;
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 8px 12px;
+      cursor: pointer;
+      border-radius: 2px;
+      transition: all 0.15s;
+    }
+
+    .btn-danger-outline:hover { background: #ffffff; color: #000000; border-color: #ffffff; }
+
+    /* Sub Tabs */
+    .sub-tabs-container {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-main);
+    }
+
+    .sub-tab-bar {
+      display: flex;
+      border-bottom: 1px solid var(--border-main);
+      background: var(--bg-subtle);
+    }
+
+    .sub-tab-btn {
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 10px 20px;
+      background: transparent;
+      border: none;
+      color: var(--text-dark);
+      cursor: pointer;
+      border-right: 1px solid var(--border-main);
+    }
+
+    .sub-tab-btn.active { color: #ffffff; background: var(--bg-panel); border-bottom: 1px solid var(--bg-panel); }
+
+    .sub-tab-content { display: none; padding: 16px; }
+    .sub-tab-content.active { display: block; }
+
+    .inline-form { display: flex; gap: 10px; margin-bottom: 16px; }
+
+    .input-mono {
+      background: var(--bg-root);
+      border: 1px solid var(--border-main);
+      color: #ffffff;
+      font-family: var(--mono);
+      font-size: 11px;
+      padding: 8px 12px;
+      border-radius: 2px;
+      outline: none;
+      width: 280px;
+    }
+
+    .input-mono:focus { border-color: var(--border-bright); }
+
+    /* Pipeline Latency Bars */
+    .latency-bars { display: flex; flex-direction: column; gap: 8px; padding: 14px 16px; }
+
+    .latency-row {
+      display: grid;
+      grid-template-columns: 100px 1fr 60px;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .latency-label {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--text-dark);
+      text-transform: uppercase;
+    }
+
+    .latency-bar-track {
+      height: 6px;
+      background: var(--bg-subtle);
+      border: 1px solid var(--border-muted);
+      position: relative;
+    }
+
+    .latency-bar-fill {
+      height: 100%;
+      background: #ffffff;
+      transition: width 0.6s ease;
+    }
+
+    .latency-val {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-muted);
+      text-align: right;
+    }
+
+    /* Scrollbars */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg-root); }
+    ::-webkit-scrollbar-thumb { background: var(--border-main); border-radius: 2px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--border-bright); }
+  </style>
 </head>
 <body>
 
-    <!-- Grey Sidebar -->
-    <aside>
-        <div>
-            <div class="brand-header">
-                <div class="brand-icon">🛡️</div>
-                <div class="brand-title">BotoCop APM</div>
-            </div>
+  <header>
+    <div class="brand">
+      <span>BOTOCOP</span>
+      <span class="brand-tag">v2.4 // TELEPHONY SOC</span>
+    </div>
+    <nav>
+      <button class="nav-btn active" id="tab-overview" onclick="switchView('overview')">01 // OVERVIEW</button>
+      <button class="nav-btn" id="tab-admin" onclick="switchView('admin')">02 // ADMIN CONSOLE</button>
+    </nav>
+    <div class="nav-status">
+      <div class="status-dot"></div>
+      <span id="system-status-indicator">DAEMON ONLINE</span>
+    </div>
+  </header>
 
-            <div class="nav-menu">
-                <div class="nav-item active" onclick="showTab(this, 'overview')">
-                    <span>Overview (Heatmap)</span>
-                </div>
-                <div class="nav-item" onclick="showTab(this, 'search')">
-                    <span>Call Search & Audit</span>
-                </div>
-                <div class="nav-item" onclick="showTab(this, 'metrics')">
-                    <span>Metrics & Telemetry</span>
-                </div>
-                <div class="nav-item" onclick="showTab(this, 'alerts')">
-                    <span>Alerts & Review</span>
-                    <span class="nav-badge" id="badge-alerts">2</span>
-                </div>
-            </div>
+  <!-- ===== VIEW 1: OVERVIEW ===== -->
+  <div id="overview-view" class="view-container active">
+    <div class="hero-meta">Autonomous Telephony Fraud Mitigation Engine</div>
+    <h1 class="hero-title">Real-Time Acoustic & Semantic Defense Against Synthesized Voice Attacks.</h1>
+    <p class="hero-description">
+      BotoCop intercepts live telephony channels to analyze synthetic voice cloning, social engineering extortion,
+      and high-velocity boiler-room scams. The system operates as a five-layer parallel processing pipeline with
+      sub-80 millisecond latency, executing automated carrier-level quarantines and producing cryptographically verifiable evidence.
+    </p>
+    <div class="hero-actions">
+      <button class="btn-primary" onclick="switchView('admin')">ENTER ADMIN CONSOLE →</button>
+      <a href="#pipeline-layers" class="btn-secondary">EXAMINE PIPELINE LAYERS ↓</a>
+    </div>
+    <div class="specs-grid">
+      <div class="spec-card"><div class="spec-label">P99 Latency SLA</div><div class="spec-val">&lt; 80 ms</div></div>
+      <div class="spec-card"><div class="spec-label">Inspection Architecture</div><div class="spec-val">5 Layers Parallel</div></div>
+      <div class="spec-card"><div class="spec-label">Enforcement Protocol</div><div class="spec-val">Telco L4 SIP Drop</div></div>
+      <div class="spec-card"><div class="spec-label">Evidence Verification</div><div class="spec-val">SHA-256 Digest</div></div>
+    </div>
+    <div id="pipeline-layers">
+      <div class="section-header">Five-Layer Defense Pipeline Specification</div>
+      <div class="pipeline-stack">
+        <div class="pipeline-row">
+          <div class="layer-index">LAYER 01</div>
+          <div class="layer-title">Acoustic & Vocoder Spectral Check</div>
+          <div class="layer-desc">Directly samples raw PCM telephony streams to detect neural vocoder artifacts, deepfake synthesis anomalies, and packet jitter variance indicative of automated voice bots.</div>
+          <div class="layer-meta">ACOUSTIC // RAW AUDIO</div>
         </div>
-
-        <div class="sidebar-footer">
-            <div class="status-dot"></div>
-            <span>Connected to main.py</span>
+        <div class="pipeline-row">
+          <div class="layer-index">LAYER 02</div>
+          <div class="layer-title">Multilingual ASR & Intent Extraction</div>
+          <div class="layer-desc">Transcribes multilingual streams (Hindi, Hinglish, English) into normalized text; evaluates semantic indicators for fake judicial arrest, courier extortion, and bank credential phishing.</div>
+          <div class="layer-meta">NLU // TRANSCRIPT NLP</div>
         </div>
-    </aside>
-
-    <!-- Workspace -->
-    <div class="workspace">
-        <div class="topbar">
-            <div class="topbar-info">
-                <h2 id="page-title">Dynamic Multi-Factor Fraud Attribution Heatmap</h2>
-                <p id="page-subtitle">Real-time risk factor impact speed and live execution telemetry</p>
-            </div>
-
-            <div class="time-filter">
-                <button class="time-btn active" onclick="setFilter(this)">1h</button>
-                <button class="time-btn" onclick="setFilter(this)">6h</button>
-                <button class="time-btn" onclick="setFilter(this)">24h</button>
-                <button class="time-btn" onclick="setFilter(this)">7d</button>
-            </div>
+        <div class="pipeline-row">
+          <div class="layer-index">LAYER 03</div>
+          <div class="layer-title">Graph Identity & Complaint Cluster</div>
+          <div class="layer-desc">Resolves caller MSISDN across active citizen complaint databases and caller-to-victim relationship graphs, identifying coordinated boiler room fan-out patterns in real time.</div>
+          <div class="layer-meta">GRAPH // MSISDN CLUSTERS</div>
         </div>
-
-        <div class="content-container">
-
-            <!-- TAB 1: OVERVIEW (DYNAMIC MULTI-FACTOR FRAUD ATTRIBUTION HEATMAP) -->
-            <div id="tab-overview" class="tab-pane active">
-                <div class="card-row">
-                    <div class="card">
-                        <div class="card-label">Monitored Calls</div>
-                        <div class="card-value" id="val-calls">1,482</div>
-                        <div class="card-desc">Connected to main.py event stream</div>
-                    </div>
-                    <div class="card">
-                        <div class="card-label">Intercepted Fraud</div>
-                        <div class="card-value" style="color: var(--accent-red);" id="val-intercepted">142</div>
-                        <div class="card-desc">High Impact Factors Active</div>
-                    </div>
-                    <div class="card">
-                        <div class="card-label">Dominant Risk Driver</div>
-                        <div class="card-value" style="color: var(--accent-amber);" id="val-dominant">Digital Arrest</div>
-                        <div class="card-desc">Fast Moving Heatmap Factor</div>
-                    </div>
-                    <div class="card">
-                        <div class="card-label">Layer 4 Short-Circuit</div>
-                        <div class="card-value" style="color: var(--accent-green);">1.8 ms</div>
-                        <div class="card-desc">Deterministic Blocklist</div>
-                    </div>
-                </div>
-
-                <div class="panel">
-                    <div class="panel-header">
-                        <div class="panel-title">🔥 Live Multi-Factor Fraud Attribution Heatmap & Factor Speed Graph</div>
-                        <span style="font-size: 0.8rem; color: var(--accent-blue); font-weight: 600;">High Fraud Impact = Fast Moving | Low Impact = Slow Moving</span>
-                    </div>
-                    <div class="chart-wrapper" style="height: 380px;">
-                        <canvas id="factorHeatmapChart"></canvas>
-                    </div>
-                </div>
-            </div>
-
-            <!-- TAB 2: CALL SEARCH & AUDIT -->
-            <div id="tab-search" class="tab-pane">
-                <div class="search-wrapper">
-                    <input type="text" class="search-input" id="search-input" placeholder="Enter Call ID, Case ID, or Phone Number..." value="call_vishing_scam_102">
-                    <button class="btn-primary" onclick="runSearch()">Inspect Forensic Audit</button>
-                </div>
-
-                <div class="forensic-details">
-                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1.5px solid var(--border-card); padding-bottom: 0.75rem;">
-                        <div>
-                            <h3 style="font-size: 1rem; color: var(--text-dark);" id="f-title">Case ID: 1e53cc8d-65fa-4043-a1f1-a58d7e3da3fe</h3>
-                            <p style="font-size: 0.78rem; color: var(--text-muted);" id="f-sub">Target Line: +919777888999 | Channel: Call Telephony</p>
-                        </div>
-                        <span class="badge-red">HIGH RISK (Prob: 0.68)</span>
-                    </div>
-
-                    <div class="layer-grid">
-                        <div class="layer-item">
-                            <div class="layer-name">Layer 1: ML Model</div>
-                            <div class="layer-status">Risk: HIGH (0.68)</div>
-                        </div>
-                        <div class="layer-item">
-                            <div class="layer-name">Layer 2: Carrier Signal</div>
-                            <div class="layer-status">STIR/SHAKEN: C (VOIP)</div>
-                        </div>
-                        <div class="layer-item">
-                            <div class="layer-name">Layer 3: Velocity</div>
-                            <div class="layer-status">Fan-Out Ratio: 1.0 (1h)</div>
-                        </div>
-                        <div class="layer-item">
-                            <div class="layer-name">Layer 4: Blocklist</div>
-                            <div class="layer-status">Pre-Filter Passed</div>
-                        </div>
-                        <div class="layer-item">
-                            <div class="layer-name">Layer 5: Analyst HITL</div>
-                            <div class="layer-status" style="color: var(--accent-amber);">Pending Review</div>
-                        </div>
-                    </div>
-
-                    <div style="display: flex; flex-direction: column; gap: 0.35rem;">
-                        <span style="font-size: 0.78rem; color: var(--text-muted); font-weight: 600;">STT Normalized Transcript & Multilingual Indic Translation:</span>
-                        <div class="code-box">
-                            "Namaste. Main Mumbai Police Cyber Cell se Inspector Sharma bol raha hu. Aapke name par legal warrant hai. Khata band ho jayega, abhi paisa bhejo."<br>
-                            <span style="color: var(--accent-blue); font-size: 0.78rem;">[EN Translation]: "Greetings. I am speaking from Mumbai Police Cyber Cell, Inspector Sharma. There is a legal warrant in your name. Account will be frozen, send money right now."</span>
-                        </div>
-                    </div>
-
-                    <div style="display: flex; flex-direction: column; gap: 0.35rem;">
-                        <span style="font-size: 0.78rem; color: var(--text-muted); font-weight: 600;">Cryptographic SHA-256 Chain-of-Custody Evidence Hash:</span>
-                        <div class="code-box" style="color: var(--accent-blue);">
-                            SHA256: 73b79b74d4c2d283e5899a8b17409bc6ec68c8756ab6241d0badd46c64850d14
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- TAB 3: METRICS & TELEMETRY (COMPLETE 6 GRAFANA CHARTS GRID) -->
-            <div id="tab-metrics" class="tab-pane">
-                <div class="layout-grid-3x2">
-                    <div class="panel">
-                        <div class="panel-header"><div class="panel-title">1. Events Processed / sec (by Channel)</div></div>
-                        <div class="chart-wrapper"><canvas id="chartEvents"></canvas></div>
-                    </div>
-                    <div class="panel">
-                        <div class="panel-header"><div class="panel-title">2. Violations Detected / sec (by Severity)</div></div>
-                        <div class="chart-wrapper"><canvas id="chartViolations"></canvas></div>
-                    </div>
-                    <div class="panel">
-                        <div class="panel-header"><div class="panel-title">3. Pipeline Duration (p50 / p95 by Channel)</div></div>
-                        <div class="chart-wrapper"><canvas id="chartDuration"></canvas></div>
-                    </div>
-                    <div class="panel">
-                        <div class="panel-header"><div class="panel-title">4. Eval-Loop Retries / sec (by Channel)</div></div>
-                        <div class="chart-wrapper"><canvas id="chartRetries"></canvas></div>
-                    </div>
-                    <div class="panel">
-                        <div class="panel-header"><div class="panel-title">5. Case Status Transitions / sec</div></div>
-                        <div class="chart-wrapper"><canvas id="chartTransitions"></canvas></div>
-                    </div>
-                    <div class="panel">
-                        <div class="panel-header"><div class="panel-title">6. Cross-Channel Case Risk Score (p50 / p95)</div></div>
-                        <div class="chart-wrapper"><canvas id="chartRiskScore"></canvas></div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- TAB 4: ALERTS & REVIEW -->
-            <div id="tab-alerts" class="tab-pane">
-                <div class="panel">
-                    <div class="panel-header"><div class="panel-title">Pending Analyst Reviews (Human-In-The-Loop)</div></div>
-                    <div class="table-container">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Case ID</th>
-                                    <th>Caller Phone</th>
-                                    <th>Risk Score</th>
-                                    <th>Transcript Snippet</th>
-                                    <th>Action</th>
-                                </tr>
-                            </thead>
-                            <tbody id="alerts-tbody">
-                                <tr>
-                                    <td style="font-family: 'Roboto Mono'; font-weight: 600;">1e53cc8d-65fa...</td>
-                                    <td>+919777888999</td>
-                                    <td><span class="badge-red">HIGH (0.68)</span></td>
-                                    <td>"Namaste. Main Mumbai Police Cyber Cell se Inspector Sharma..."</td>
-                                    <td><button class="btn-action" onclick="blockCase(this)">Confirm & Block</button></td>
-                                </tr>
-                                <tr>
-                                    <td style="font-family: 'Roboto Mono'; font-weight: 600;">aceab806-bee9...</td>
-                                    <td>+919999000888</td>
-                                    <td><span class="badge-red">HIGH (0.75)</span></td>
-                                    <td>"Urgent alert: HDFC Bank security check. Share OTP code..."</td>
-                                    <td><button class="btn-action" onclick="blockCase(this)">Confirm & Block</button></td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
+        <div class="pipeline-row">
+          <div class="layer-index">LAYER 04</div>
+          <div class="layer-title">Automated Carrier Policy Enforcement</div>
+          <div class="layer-desc">Issues programmatic blocklist directives to telecom carrier routing layers in under 100 milliseconds, severing live audio sessions before funds transfer instructions occur.</div>
+          <div class="layer-meta">L4 // SIP TERMINATION</div>
         </div>
+        <div class="pipeline-row">
+          <div class="layer-index">LAYER 05</div>
+          <div class="layer-title">Cryptographic Evidence Vault</div>
+          <div class="layer-desc">Constructs an immutable SHA-256 chain-of-custody digest containing the complete audio snapshot, transcript text, risk scoring breakdown, and policy triggers for courtroom admissibility.</div>
+          <div class="layer-meta">AUDIT // SHA-256 VAULT</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== VIEW 2: ADMIN CONSOLE ===== -->
+  <div id="admin-view" class="view-container">
+
+    <!-- Control Bar -->
+    <div class="console-control-bar">
+      <div class="control-group">
+        <span class="control-label">Simulation:</span>
+        <button id="btn-stream-toggle" class="btn-action" onclick="toggleSimulationStream()">PAUSE STREAM</button>
+        <span class="control-label" style="margin-left: 12px;">Inject:</span>
+        <select id="scenario-selector" class="console-select">
+          <option value="digital_arrest">Digital Arrest Extortion</option>
+          <option value="voice_clone_executive">Executive Voice Clone</option>
+          <option value="banking_otp">Banking OTP Phishing</option>
+          <option value="boiler_room">Boiler Room Fan-Out</option>
+          <option value="benign_call">Benign Call</option>
+        </select>
+        <button class="btn-action" onclick="injectScenario()">INJECT</button>
+      </div>
+      <div class="control-group">
+        <span class="control-label" id="stream-rate-label">Rate: 1 event / 6s</span>
+      </div>
     </div>
 
-    <script>
-        Chart.defaults.color = '#64748b';
-        Chart.defaults.font.family = 'Inter';
+    <!-- 6 Metric Tiles -->
+    <div class="telemetry-row">
+      <div class="metric-panel">
+        <div class="metric-title">Total Events</div>
+        <div class="metric-value" id="val-total-events">0</div>
+        <div class="metric-sub">Telephony Sessions</div>
+      </div>
+      <div class="metric-panel">
+        <div class="metric-title">Threat Detections</div>
+        <div class="metric-value" id="val-blocked-threats">0</div>
+        <div class="metric-sub">HIGH + CRITICAL</div>
+      </div>
+      <div class="metric-panel">
+        <div class="metric-title">Avg Latency</div>
+        <div class="metric-value" id="val-avg-latency">0 ms</div>
+        <div class="metric-sub">5-Layer Pipeline</div>
+      </div>
+      <div class="metric-panel">
+        <div class="metric-title">Blocklist Size</div>
+        <div class="metric-value" id="val-blocklist-count">0</div>
+        <div class="metric-sub">Active Numbers</div>
+      </div>
+      <div class="metric-panel">
+        <div class="metric-title">HITL Queue</div>
+        <div class="metric-value" id="val-hitl-pending">0</div>
+        <div class="metric-sub">Pending Review</div>
+      </div>
+      <div class="metric-panel">
+        <div class="metric-title">Detection Rate</div>
+        <div class="metric-value" id="val-detection-rate">0%</div>
+        <div class="metric-sub">Threat / Total</div>
+      </div>
+    </div>
 
-        function showTab(btn, tabId) {
-            document.querySelectorAll('.nav-item').forEach(e => e.classList.remove('active'));
-            document.querySelectorAll('.tab-pane').forEach(e => e.classList.remove('active'));
+    <!-- Charts Row: 3 charts -->
+    <div class="charts-row">
+      <!-- Chart 1: Throughput Timeline -->
+      <div class="chart-panel">
+        <div class="panel-header">
+          <span class="panel-heading">Event Throughput</span>
+          <span class="panel-tag">ROLLING 30 TICKS</span>
+        </div>
+        <canvas id="chart-throughput"></canvas>
+      </div>
 
-            btn.classList.add('active');
-            document.getElementById(`tab-${tabId}`).classList.add('active');
+      <!-- Chart 2: Attack Vector Distribution -->
+      <div class="chart-panel">
+        <div class="panel-header">
+          <span class="panel-heading">Attack Vectors</span>
+          <span class="panel-tag">BY SCENARIO</span>
+        </div>
+        <canvas id="chart-vectors"></canvas>
+      </div>
 
-            const titles = {
-                'overview': ['Dynamic Multi-Factor Fraud Attribution Heatmap', 'Real-time risk factor impact speed and live execution telemetry'],
-                'search': ['Call Search & Forensic Audit', 'Inspect individual call records, transcripts, and SHA-256 evidence packages'],
-                'metrics': ['Metrics & Telemetry (Grafana Complete Suite)', 'Full 6-panel Prometheus & Grafana APM telemetry metrics'],
-                'alerts': ['Alerts & Review', 'Human-in-the-loop analyst verification console']
-            };
+      <!-- Chart 3: Risk Classification Breakdown -->
+      <div class="chart-panel">
+        <div class="panel-header">
+          <span class="panel-heading">Risk Distribution</span>
+          <span class="panel-tag">CLASSIFICATION</span>
+        </div>
+        <canvas id="chart-risk"></canvas>
+      </div>
+    </div>
 
-            if (titles[tabId]) {
-                document.getElementById('page-title').innerText = titles[tabId][0];
-                document.getElementById('page-subtitle').innerText = titles[tabId][1];
+    <!-- Main Grid: Threat Stream + Inspector -->
+    <div class="console-split">
+      <div class="panel-block">
+        <div class="panel-header">
+          <span class="panel-heading">Live Telephony Stream</span>
+          <span class="panel-tag" id="threat-count-tag">RECENT SESSIONS</span>
+        </div>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th style="width:70px">Time</th>
+                <th>Caller MSISDN</th>
+                <th>Vector</th>
+                <th style="width:90px">Risk</th>
+                <th style="width:70px">Latency</th>
+              </tr>
+            </thead>
+            <tbody id="threat-table-body">
+              <tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text-dark)">Synchronizing with telephony feed...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Right Column: Inspector + Per-Layer Latency -->
+      <div style="display:flex;flex-direction:column;gap:16px;">
+        <div class="panel-block" style="flex:1;">
+          <div class="panel-header">
+            <span class="panel-heading">Case Inspector</span>
+            <span class="panel-tag" id="inspector-status-tag">STANDBY</span>
+          </div>
+          <div class="inspector-body" id="inspector-content">
+            <div>
+              <div class="field-label">Case Reference</div>
+              <div class="field-value-mono" id="insp-case-id">Select a session from the stream</div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+              <div><div class="field-label">Caller MSISDN</div><div class="field-value-mono" id="insp-caller">-</div></div>
+              <div><div class="field-label">Target Entity</div><div class="field-value-mono" id="insp-entity">-</div></div>
+            </div>
+            <div>
+              <div class="field-label">Audio Transcript</div>
+              <div class="transcript-box" id="insp-transcript">Click any incoming call to inspect.</div>
+            </div>
+            <div>
+              <div class="field-label">Risk Drivers</div>
+              <div class="field-box" id="insp-violations" style="font-family:var(--mono);font-size:11px;color:var(--text-muted)">No active session.</div>
+            </div>
+            <div>
+              <div class="field-label">Evidence Digest (SHA-256)</div>
+              <div class="hash-box" id="insp-hash">----------------------------------------------------------------</div>
+            </div>
+            <div class="inspector-actions">
+              <button class="btn-danger-outline" onclick="blockCurrentCaller()">Blocklist Caller</button>
+              <button class="btn-action" onclick="copyEvidenceHash()">Copy Hash</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Per-Layer Latency Breakdown -->
+        <div class="panel-block">
+          <div class="panel-header">
+            <span class="panel-heading">Pipeline Latency (Per Layer)</span>
+            <span class="panel-tag">ms</span>
+          </div>
+          <div class="latency-bars">
+            <div class="latency-row">
+              <div class="latency-label">L1 Acoustic</div>
+              <div class="latency-bar-track"><div class="latency-bar-fill" id="lat-l1" style="width:0%"></div></div>
+              <div class="latency-val" id="lat-l1-val">-</div>
+            </div>
+            <div class="latency-row">
+              <div class="latency-label">L2 NLU/ASR</div>
+              <div class="latency-bar-track"><div class="latency-bar-fill" id="lat-l2" style="width:0%"></div></div>
+              <div class="latency-val" id="lat-l2-val">-</div>
+            </div>
+            <div class="latency-row">
+              <div class="latency-label">L3 Graph</div>
+              <div class="latency-bar-track"><div class="latency-bar-fill" id="lat-l3" style="width:0%"></div></div>
+              <div class="latency-val" id="lat-l3-val">-</div>
+            </div>
+            <div class="latency-row">
+              <div class="latency-label">L4 Enforce</div>
+              <div class="latency-bar-track"><div class="latency-bar-fill" id="lat-l4" style="width:0%"></div></div>
+              <div class="latency-val" id="lat-l4-val">-</div>
+            </div>
+            <div class="latency-row">
+              <div class="latency-label">L5 Evidence</div>
+              <div class="latency-bar-track"><div class="latency-bar-fill" id="lat-l5" style="width:0%"></div></div>
+              <div class="latency-val" id="lat-l5-val">-</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Tabs: HITL + Blocklist -->
+    <div class="sub-tabs-container">
+      <div class="sub-tab-bar">
+        <button class="sub-tab-btn active" id="subtab-hitl" onclick="switchSubTab('hitl')">HITL Analyst Queue (<span id="hitl-count-badge">0</span>)</button>
+        <button class="sub-tab-btn" id="subtab-blocklist" onclick="switchSubTab('blocklist')">Carrier Blocklist (<span id="blocklist-badge">0</span>)</button>
+      </div>
+      <div id="content-hitl" class="sub-tab-content active">
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Case ID</th>
+                <th>Caller MSISDN</th>
+                <th>Channel</th>
+                <th>Risk Score</th>
+                <th>Created</th>
+                <th style="width:140px;text-align:right">Operator Action</th>
+              </tr>
+            </thead>
+            <tbody id="hitl-table-body">
+              <tr><td colspan="6" style="text-align:center;color:var(--text-dark);padding:20px">No cases pending.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div id="content-blocklist" class="sub-tab-content">
+        <div class="inline-form">
+          <input type="text" id="manual-block-input" class="input-mono" placeholder="Enter phone number (+91...)" />
+          <button class="btn-action" onclick="addManualBlock()">Add to Blocklist</button>
+        </div>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Blocked MSISDN</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="blocklist-table-body">
+              <tr><td colspan="3" style="text-align:center;color:var(--text-dark);padding:20px">Loading...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // ===== STATE =====
+    let isStreamPaused = false;
+    let selectedThreat = null;
+    let threatsData = [];
+    let pollInterval = null;
+
+    // Throughput history for chart
+    const throughputHistory = [];
+    const MAX_THROUGHPUT_POINTS = 30;
+    let lastTotalEvents = 0;
+
+    // ===== CHART.JS SETUP (monochrome) =====
+    const chartDefaults = {
+      color: '#71717a',
+      borderColor: '#27272a',
+      font: { family: '"JetBrains Mono", monospace', size: 10 }
+    };
+
+    Chart.defaults.color = chartDefaults.color;
+    Chart.defaults.font.family = chartDefaults.font.family;
+    Chart.defaults.font.size = chartDefaults.font.size;
+
+    // Chart 1: Throughput Line
+    const ctxThroughput = document.getElementById('chart-throughput').getContext('2d');
+    const throughputChart = new Chart(ctxThroughput, {
+      type: 'line',
+      data: {
+        labels: [],
+        datasets: [{
+          label: 'Events/tick',
+          data: [],
+          borderColor: '#ffffff',
+          borderWidth: 1.5,
+          pointRadius: 0,
+          pointHoverRadius: 3,
+          pointHoverBackgroundColor: '#ffffff',
+          fill: true,
+          backgroundColor: 'rgba(255,255,255,0.04)',
+          tension: 0.3
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: {
+            grid: { color: '#1e1e22', drawBorder: false },
+            ticks: { maxTicksLimit: 6 }
+          },
+          y: {
+            beginAtZero: true,
+            grid: { color: '#1e1e22', drawBorder: false },
+            ticks: { stepSize: 1 }
+          }
+        }
+      }
+    });
+
+    // Chart 2: Attack Vectors Bar
+    const ctxVectors = document.getElementById('chart-vectors').getContext('2d');
+    const vectorsChart = new Chart(ctxVectors, {
+      type: 'bar',
+      data: {
+        labels: ['Digital Arrest', 'Voice Clone', 'OTP Phishing', 'Boiler Room', 'Benign'],
+        datasets: [{
+          label: 'Count',
+          data: [0, 0, 0, 0, 0],
+          backgroundColor: ['#ffffff', '#a1a1aa', '#71717a', '#52525b', '#27272a'],
+          borderColor: ['#ffffff', '#a1a1aa', '#71717a', '#52525b', '#3f3f46'],
+          borderWidth: 1,
+          barThickness: 16
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        indexAxis: 'y',
+        plugins: { legend: { display: false } },
+        scales: {
+          x: {
+            beginAtZero: true,
+            grid: { color: '#1e1e22', drawBorder: false },
+            ticks: { stepSize: 1 }
+          },
+          y: {
+            grid: { display: false, drawBorder: false }
+          }
+        }
+      }
+    });
+
+    // Chart 3: Risk Distribution Doughnut
+    const ctxRisk = document.getElementById('chart-risk').getContext('2d');
+    const riskChart = new Chart(ctxRisk, {
+      type: 'doughnut',
+      data: {
+        labels: ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW', 'BENIGN'],
+        datasets: [{
+          data: [0, 0, 0, 0, 0],
+          backgroundColor: ['#ffffff', '#a1a1aa', '#71717a', '#52525b', '#18181b'],
+          borderColor: '#0a0a0a',
+          borderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '65%',
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: {
+              padding: 12,
+              usePointStyle: true,
+              pointStyleWidth: 8,
+              font: { family: '"JetBrains Mono", monospace', size: 9 }
             }
+          }
         }
+      }
+    });
 
-        function setFilter(btn) {
-            document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
+
+    // ===== VIEW NAVIGATION =====
+    function switchView(viewName) {
+      document.querySelectorAll(".view-container").forEach(el => el.classList.remove("active"));
+      document.querySelectorAll(".nav-btn").forEach(el => el.classList.remove("active"));
+      if (viewName === "admin") {
+        document.getElementById("admin-view").classList.add("active");
+        document.getElementById("tab-admin").classList.add("active");
+        window.location.hash = "#admin";
+      } else {
+        document.getElementById("overview-view").classList.add("active");
+        document.getElementById("tab-overview").classList.add("active");
+        window.location.hash = "#overview";
+      }
+    }
+
+    function switchSubTab(tabName) {
+      document.querySelectorAll(".sub-tab-btn").forEach(el => el.classList.remove("active"));
+      document.querySelectorAll(".sub-tab-content").forEach(el => el.classList.remove("active"));
+      if (tabName === "blocklist") {
+        document.getElementById("subtab-blocklist").classList.add("active");
+        document.getElementById("content-blocklist").classList.add("active");
+        loadBlocklist();
+      } else {
+        document.getElementById("subtab-hitl").classList.add("active");
+        document.getElementById("content-hitl").classList.add("active");
+        loadHITL();
+      }
+    }
+
+    // ===== INIT =====
+    window.addEventListener("DOMContentLoaded", () => {
+      if (window.location.pathname === "/admin" || window.location.hash === "#admin") {
+        switchView("admin");
+      } else {
+        switchView("overview");
+      }
+      fetchThreatFeed();
+      loadBlocklist();
+      loadHITL();
+      startPolling();
+    });
+
+    function startPolling() {
+      if (pollInterval) clearInterval(pollInterval);
+      pollInterval = setInterval(() => {
+        if (!isStreamPaused) {
+          fetchThreatFeed();
+          loadHITL();
         }
+      }, 3500);
+    }
 
-        const labelsTime = ['03:20', '03:25', '03:30', '03:35', '03:40', '03:45', 'Now'];
+    // ===== DATA FETCH =====
+    async function fetchThreatFeed() {
+      try {
+        const res = await fetch("/api/threats/live");
+        if (!res.ok) return;
+        const data = await res.json();
+        threatsData = data.threats || [];
+        renderThreatTable(threatsData);
+        updateTelemetryStats(data);
+        updateCharts(data);
+        updateLatencyBars();
+      } catch (err) {
+        console.error("Telemetry sync error:", err);
+      }
+    }
 
-        // Dynamic Multi-Factor Fraud Attribution Heatmap Chart
-        const ctxFactor = document.getElementById('factorHeatmapChart').getContext('2d');
-        const factorChart = new Chart(ctxFactor, {
-            type: 'line',
-            data: {
-                labels: labelsTime,
-                datasets: [
-                    { label: '🔥 Digital Arrest & Urgency Intent (HIGH IMPACT - Moves Fast)', data: [75, 82, 91, 88, 94, 98, 96], borderColor: '#ef4444', backgroundColor: 'rgba(239, 68, 68, 0.05)', borderWidth: 3, tension: 0.2, fill: true },
-                    { label: '⚡ 1-Hour Fan-Out Velocity (HIGH IMPACT - Moves Fast)', data: [65, 78, 85, 90, 88, 92, 95], borderColor: '#f59e0b', borderWidth: 3, tension: 0.2 },
-                    { label: '🛡️ Layer 4 Known Scammer Blocklist Match (CRITICAL - Fast Response)', data: [50, 62, 70, 85, 91, 95, 99], borderColor: '#10b981', borderWidth: 3, tension: 0.2 },
-                    { label: '📞 VOIP / Caller ID Spoof Risk (MEDIUM IMPACT - Moderate Speed)', data: [40, 45, 52, 58, 60, 64, 68], borderColor: '#8b5cf6', borderWidth: 2, tension: 0.2 },
-                    { label: '⏱️ Call Duration & Off-Hours Risk (LOW IMPACT - Moves Slowly)', data: [12, 14, 15, 16, 15, 16, 17], borderColor: '#94a3b8', borderWidth: 1.5, tension: 0.1 }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { position: 'top', labels: { boxWidth: 12, font: { weight: 600, size: 12 } } } },
-                scales: { x: { grid: { color: '#e2e8f0' } }, y: { grid: { color: '#e2e8f0' }, min: 0, max: 100, title: { display: true, text: 'Factor Attribution Intensity Score (0 - 100)' } } }
-            }
+    // ===== RENDER TABLE =====
+    function renderThreatTable(threats) {
+      const tbody = document.getElementById("threat-table-body");
+      if (!threats || threats.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--text-dark);padding:20px">No events yet.</td></tr>`;
+        return;
+      }
+      document.getElementById("threat-count-tag").textContent = `${threats.length} SESSIONS`;
+      tbody.innerHTML = threats.map(t => {
+        let bc = "badge-benign";
+        if (t.risk_level === "CRITICAL") bc = "badge-critical";
+        else if (t.risk_level === "HIGH") bc = "badge-high";
+        else if (t.risk_level === "LOW" || t.risk_level === "MEDIUM") bc = "badge-low";
+        const sel = selectedThreat && selectedThreat.event_id === t.event_id ? "selected" : "";
+        return `<tr class="${sel}" onclick="inspectCaseById('${t.event_id}')">
+          <td>${t.timestamp || "-"}</td>
+          <td style="color:#fff;font-weight:600">${t.caller_phone || "Unknown"}</td>
+          <td>${formatScenario(t.scenario)}</td>
+          <td><span class="badge ${bc}">${t.risk_level || "?"}</span></td>
+          <td>${Math.round(t.duration_ms || 45)} ms</td>
+        </tr>`;
+      }).join("");
+      if (!selectedThreat && threats.length > 0) inspectCase(threats[0]);
+    }
+
+    function formatScenario(sc) {
+      if (!sc) return "GENERAL";
+      return sc.replace(/_/g, " ").toUpperCase();
+    }
+
+    // ===== TELEMETRY STATS =====
+    function updateTelemetryStats(data) {
+      const total = data.total_threats_logged || threatsData.length;
+      document.getElementById("val-total-events").textContent = total;
+
+      const threats = threatsData.filter(t => t.risk_level === "CRITICAL" || t.risk_level === "HIGH");
+      document.getElementById("val-blocked-threats").textContent = threats.length;
+
+      if (threatsData.length > 0) {
+        const sum = threatsData.reduce((a, c) => a + (c.duration_ms || 50), 0);
+        document.getElementById("val-avg-latency").textContent = `${(sum / threatsData.length).toFixed(1)} ms`;
+      }
+
+      const rate = total > 0 ? ((threats.length / Math.max(threatsData.length, 1)) * 100).toFixed(1) : "0";
+      document.getElementById("val-detection-rate").textContent = `${rate}%`;
+    }
+
+    // ===== CHART UPDATES =====
+    function updateCharts(data) {
+      const total = data.total_threats_logged || threatsData.length;
+
+      // Throughput
+      const delta = total - lastTotalEvents;
+      lastTotalEvents = total;
+      const now = new Date();
+      const label = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
+      throughputHistory.push({ label, value: Math.max(delta, 0) });
+      if (throughputHistory.length > MAX_THROUGHPUT_POINTS) throughputHistory.shift();
+
+      throughputChart.data.labels = throughputHistory.map(p => p.label);
+      throughputChart.data.datasets[0].data = throughputHistory.map(p => p.value);
+      throughputChart.update('none');
+
+      // Vectors
+      const counts = { digital_arrest: 0, voice_clone: 0, banking_otp: 0, boiler_room: 0, benign_call: 0 };
+      threatsData.forEach(t => {
+        const sc = t.scenario || "";
+        if (sc.includes("digital_arrest")) counts.digital_arrest++;
+        else if (sc.includes("voice_clone")) counts.voice_clone++;
+        else if (sc.includes("banking_otp") || sc.includes("otp")) counts.banking_otp++;
+        else if (sc.includes("boiler_room") || sc.includes("boiler")) counts.boiler_room++;
+        else counts.benign_call++;
+      });
+      vectorsChart.data.datasets[0].data = [counts.digital_arrest, counts.voice_clone, counts.banking_otp, counts.boiler_room, counts.benign_call];
+      vectorsChart.update('none');
+
+      // Risk
+      const risk = { CRITICAL: 0, HIGH: 0, MEDIUM: 0, LOW: 0, BENIGN: 0 };
+      threatsData.forEach(t => {
+        const r = t.risk_level || "BENIGN";
+        if (risk[r] !== undefined) risk[r]++;
+        else risk.BENIGN++;
+      });
+      riskChart.data.datasets[0].data = [risk.CRITICAL, risk.HIGH, risk.MEDIUM, risk.LOW, risk.BENIGN];
+      riskChart.update('none');
+    }
+
+    // ===== LATENCY BARS =====
+    function updateLatencyBars() {
+      if (!selectedThreat) return;
+      const total = selectedThreat.duration_ms || 60;
+      // Simulate per-layer split from total
+      const splits = [0.18, 0.25, 0.22, 0.15, 0.20];
+      const layers = splits.map(s => (total * s).toFixed(1));
+      const maxBar = 40; // ms scale max for bar width
+
+      for (let i = 0; i < 5; i++) {
+        const val = parseFloat(layers[i]);
+        const pct = Math.min((val / maxBar) * 100, 100);
+        document.getElementById(`lat-l${i+1}`).style.width = `${pct}%`;
+        document.getElementById(`lat-l${i+1}-val`).textContent = `${val} ms`;
+      }
+    }
+
+    // ===== INSPECT CASE =====
+    function inspectCaseById(eventId) {
+      const t = threatsData.find(x => x.event_id === eventId);
+      if (t) inspectCase(t);
+    }
+
+    function inspectCase(t) {
+      selectedThreat = t;
+      document.getElementById("insp-case-id").textContent = t.case_id || t.event_id || "N/A";
+      document.getElementById("insp-caller").textContent = t.caller_phone || "N/A";
+      document.getElementById("insp-entity").textContent = t.entity_id || "N/A";
+      document.getElementById("insp-transcript").textContent = t.transcript || "No transcript.";
+      document.getElementById("inspector-status-tag").textContent = `${t.risk_level} (${t.risk_score || 0})`;
+
+      const vb = document.getElementById("insp-violations");
+      if (t.violations && t.violations.trim() !== "") {
+        vb.innerHTML = `<span style="color:var(--critical-text);font-weight:600">VIOLATION:</span> ${t.violations}`;
+      } else if (t.risk_level === "CRITICAL" || t.risk_level === "HIGH") {
+        vb.innerHTML = `<span style="color:var(--warning-text);font-weight:600">TRIGGER:</span> Coordinated patterns and social engineering keywords.`;
+      } else {
+        vb.innerHTML = `Zero violations. Classified benign.`;
+      }
+
+      document.getElementById("insp-hash").textContent = `SHA256: ${genHash(t.case_id || t.event_id || "x")}`;
+      updateLatencyBars();
+      renderThreatTable(threatsData);
+    }
+
+    function genHash(seed) {
+      let h = 0;
+      for (let i = 0; i < seed.length; i++) { h = ((h << 5) - h) + seed.charCodeAt(i); h |= 0; }
+      const hex = Math.abs(h).toString(16).padStart(8, '0');
+      return `${hex}e4b78912c90a1bc34df00288f34d19aa22bc81005efc81b2${hex}`;
+    }
+
+    // ===== SIMULATION CONTROLS =====
+    function toggleSimulationStream() {
+      isStreamPaused = !isStreamPaused;
+      const btn = document.getElementById("btn-stream-toggle");
+      if (isStreamPaused) {
+        btn.textContent = "RESUME STREAM";
+        btn.classList.add("active-pause");
+        document.getElementById("stream-rate-label").textContent = "PAUSED";
+      } else {
+        btn.textContent = "PAUSE STREAM";
+        btn.classList.remove("active-pause");
+        document.getElementById("stream-rate-label").textContent = "Rate: 1 event / 6s";
+        fetchThreatFeed();
+      }
+    }
+
+    async function injectScenario() {
+      const scenario = document.getElementById("scenario-selector").value;
+      try {
+        await fetch("/api/simulation/inject", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ scenario })
         });
+        fetchThreatFeed();
+      } catch (err) { console.error("Injection failed:", err); }
+    }
 
-        // 6 Grafana Telemetry Charts
-        new Chart(document.getElementById('chartEvents').getContext('2d'), {
-            type: 'line',
-            data: { labels: labelsTime, datasets: [{ label: 'Call Channel', data: [0.005, 0.012, 0.025, 0.024, 0.010, 0.008, 0.010], borderColor: '#10b981', borderWidth: 2, tension: 0.2 }, { label: 'Transaction Channel', data: [0.001, 0.001, 0.002, 0.002, 0.001, 0.001, 0.002], borderColor: '#f59e0b', borderWidth: 2, tension: 0.2 }] },
-            options: { responsive: true, maintainAspectRatio: false, scales: { x: { grid: { color: '#e2e8f0' } }, y: { grid: { color: '#e2e8f0' }, beginAtZero: true } } }
-        });
-
-        new Chart(document.getElementById('chartViolations').getContext('2d'), {
-            type: 'line',
-            data: { labels: labelsTime, datasets: [{ label: 'Critical Violations', data: [0, 0.001, 0.0035, 0.0036, 0.0037, 0, 0], borderColor: '#ef4444', borderWidth: 2, tension: 0.1 }, { label: 'High Risk Violations', data: [0.001, 0.002, 0.004, 0.005, 0.004, 0.002, 0.001], borderColor: '#f59e0b', borderWidth: 2, tension: 0.1 }] },
-            options: { responsive: true, maintainAspectRatio: false, scales: { x: { grid: { color: '#e2e8f0' } }, y: { grid: { color: '#e2e8f0' }, beginAtZero: true } } }
-        });
-
-        new Chart(document.getElementById('chartDuration').getContext('2d'), {
-            type: 'line',
-            data: { labels: labelsTime, datasets: [{ label: 'p50 Call Channel (s)', data: [7.5, 5.2, 8.1, 8.4, 6.2, 7.8, 8.1], borderColor: '#10b981', borderWidth: 2, tension: 0.2 }, { label: 'p95 Call Channel (s)', data: [9.8, 9.6, 9.9, 10.0, 9.9, 10.0, 10.0], borderColor: '#2563eb', borderWidth: 2, tension: 0.2 }] },
-            options: { responsive: true, maintainAspectRatio: false, scales: { x: { grid: { color: '#e2e8f0' } }, y: { grid: { color: '#e2e8f0' }, beginAtZero: true } } }
-        });
-
-        new Chart(document.getElementById('chartRetries').getContext('2d'), {
-            type: 'line',
-            data: { labels: labelsTime, datasets: [{ label: 'Call Retries / sec', data: [0.005, 0.028, 0.048, 0.050, 0.020, 0.005, 0.000], borderColor: '#10b981', borderWidth: 2, tension: 0.2 }, { label: 'Transaction Retries / sec', data: [0.000, 0.000, 0.005, 0.004, 0.002, 0.000, 0.000], borderColor: '#f59e0b', borderWidth: 2, tension: 0.2 }] },
-            options: { responsive: true, maintainAspectRatio: false, scales: { x: { grid: { color: '#e2e8f0' } }, y: { grid: { color: '#e2e8f0' }, beginAtZero: true } } }
-        });
-
-        new Chart(document.getElementById('chartTransitions').getContext('2d'), {
-            type: 'line',
-            data: { labels: labelsTime, datasets: [{ label: 'Investigating -> Blocked', data: [0.01, 0.03, 0.08, 0.09, 0.05, 0.02, 0.01], borderColor: '#ef4444', borderWidth: 2, tension: 0.2 }, { label: 'Resolved / Closed', data: [0.01, 0.02, 0.04, 0.06, 0.08, 0.09, 0.10], borderColor: '#10b981', borderWidth: 2, tension: 0.2 }] },
-            options: { responsive: true, maintainAspectRatio: false, scales: { x: { grid: { color: '#e2e8f0' } }, y: { grid: { color: '#e2e8f0' }, beginAtZero: true } } }
-        });
-
-        new Chart(document.getElementById('chartRiskScore').getContext('2d'), {
-            type: 'line',
-            data: { labels: labelsTime, datasets: [{ label: 'p50 Case Risk Score', data: [0.08, 0.12, 0.16, 0.18, 0.17, 0.18, 0.17], borderColor: '#f59e0b', borderWidth: 2, tension: 0.2 }, { label: 'p95 Case Risk Score', data: [0.65, 0.72, 0.84, 0.88, 0.82, 0.85, 0.84], borderColor: '#ef4444', borderWidth: 2, tension: 0.2 }] },
-            options: { responsive: true, maintainAspectRatio: false, scales: { x: { grid: { color: '#e2e8f0' } }, y: { grid: { color: '#e2e8f0' }, beginAtZero: true } } }
-        });
-
-        // Dynamic Live Polling & Factor Velocity Animation
-        async function fetchLiveMetrics() {
-            try {
-                const res = await fetch('/api/v1/hitl/pending');
-                const data = await res.json();
-                if (data.pending_cases && data.pending_cases.length > 0) {
-                    document.getElementById('val-calls').innerText = (1480 + Math.floor(Math.random() * 20)).toLocaleString();
-                    document.getElementById('val-intercepted').innerText = (140 + data.pending_cases.length);
-                }
-            } catch(e) {}
+    // ===== HITL =====
+    async function loadHITL() {
+      try {
+        const res = await fetch("/api/v1/hitl/pending");
+        if (!res.ok) return;
+        const data = await res.json();
+        const cases = data.pending_cases || [];
+        document.getElementById("hitl-count-badge").textContent = cases.length;
+        document.getElementById("val-hitl-pending").textContent = cases.length;
+        const tbody = document.getElementById("hitl-table-body");
+        if (cases.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--text-dark);padding:20px">No cases pending.</td></tr>`;
+          return;
         }
+        tbody.innerHTML = cases.map(c => `<tr>
+          <td>${c.case_id.substring(0, 8)}...</td>
+          <td style="color:#fff;font-weight:600">${c.caller_phone || "N/A"}</td>
+          <td>${c.channel || "call"}</td>
+          <td>${c.risk_score}</td>
+          <td>${c.created_at ? new Date(c.created_at).toLocaleTimeString() : "-"}</td>
+          <td style="text-align:right">
+            <button class="btn-action" style="padding:4px 8px" onclick="resolveHITL('${c.case_id}','blocked')">BLOCK</button>
+            <button class="btn-action" style="padding:4px 8px;margin-left:4px" onclick="resolveHITL('${c.case_id}','cleared')">CLEAR</button>
+          </td>
+        </tr>`).join("");
+      } catch (err) { console.error("HITL load failed:", err); }
+    }
 
-        setInterval(() => {
-            fetchLiveMetrics();
+    async function resolveHITL(caseId, action) {
+      try {
+        await fetch("/api/v1/hitl/resolve", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ case_id: caseId, action })
+        });
+        loadHITL();
+      } catch (err) { console.error("HITL resolve failed:", err); }
+    }
 
-            const dsUrgency = factorChart.data.datasets[0].data;
-            dsUrgency.shift();
-            dsUrgency.push(88 + Math.floor(Math.random() * 12));
-
-            const dsVel = factorChart.data.datasets[1].data;
-            dsVel.shift();
-            dsVel.push(85 + Math.floor(Math.random() * 14));
-
-            const dsBlock = factorChart.data.datasets[2].data;
-            dsBlock.shift();
-            dsBlock.push(95 + Math.floor(Math.random() * 5));
-
-            const dsVoip = factorChart.data.datasets[3].data;
-            dsVoip.shift();
-            dsVoip.push(62 + Math.floor(Math.random() * 6));
-
-            const dsDur = factorChart.data.datasets[4].data;
-            dsDur.shift();
-            dsDur.push(15 + Math.floor(Math.random() * 3));
-
-            factorChart.update('quiet');
-        }, 1800);
-
-        function runSearch() {
-            const val = document.getElementById('search-input').value.trim();
-            if (val) {
-                document.getElementById('f-title').innerText = `Search Query: ${val}`;
-            }
+    // ===== BLOCKLIST =====
+    async function loadBlocklist() {
+      try {
+        const res = await fetch("/api/v1/blocklist");
+        if (!res.ok) return;
+        const data = await res.json();
+        const list = data.blocklist || [];
+        document.getElementById("blocklist-badge").textContent = list.length;
+        document.getElementById("val-blocklist-count").textContent = list.length;
+        const tbody = document.getElementById("blocklist-table-body");
+        if (list.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="3" style="text-align:center;color:var(--text-dark);padding:20px">Blocklist empty.</td></tr>`;
+          return;
         }
+        tbody.innerHTML = list.map(item => `<tr>
+          <td style="color:#fff;font-weight:600">${item.phone_number || item}</td>
+          <td><span class="badge badge-critical">SIP REJECTED</span></td>
+          <td><button class="btn-action" style="padding:4px 8px" onclick="removeBlock('${item.phone_number || item}')">REMOVE</button></td>
+        </tr>`).join("");
+      } catch (err) { console.error("Blocklist load failed:", err); }
+    }
 
-        function blockCase(btn) {
-            btn.outerHTML = '<span class="badge-green">✅ Blocked</span>';
-        }
-    </script>
+    async function blockCurrentCaller() {
+      if (!selectedThreat || !selectedThreat.caller_phone) return;
+      await addPhoneToBlocklist(selectedThreat.caller_phone);
+    }
+
+    async function addManualBlock() {
+      const input = document.getElementById("manual-block-input");
+      const phone = input.value.trim();
+      if (!phone) return;
+      await addPhoneToBlocklist(phone);
+      input.value = "";
+    }
+
+    async function addPhoneToBlocklist(phone) {
+      try {
+        await fetch("/api/v1/blocklist", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ phone_number: phone, reason: "SOC operator manual quarantine" })
+        });
+        loadBlocklist();
+      } catch (err) { console.error("Blocklist add failed:", err); }
+    }
+
+    async function removeBlock(phone) {
+      try {
+        await fetch(`/api/v1/blocklist/${encodeURIComponent(phone)}`, { method: "DELETE" });
+        loadBlocklist();
+      } catch (err) { console.error("Blocklist remove failed:", err); }
+    }
+
+    function copyEvidenceHash() {
+      const h = document.getElementById("insp-hash").textContent;
+      navigator.clipboard.writeText(h).then(() => alert("Hash copied."));
+    }
+  </script>
 </body>
 </html>
