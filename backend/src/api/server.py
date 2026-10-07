@@ -130,6 +130,46 @@ async def analyze_call_fraud(payload: dict):
         logger.error(f"Call fraud analysis failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/api/v1/risk/{entity_id}")
+async def fast_lane_risk_check(entity_id: str):
+    """
+    Fast-lane synchronous API (~100-200ms latency).
+    Returns real-time risk decision based on pre-computed case state.
+    Use for real-time transaction blocking/step-up authorization.
+    """
+    from backend.src.case.store import get_open_case_for_entity
+    import time
+    start = time.time()
+    
+    # Fast DB read (bypasses LLM/pipelines)
+    case = get_open_case_for_entity(entity_id)
+    
+    # Apply simple action policy based on case state
+    decision = "allow"
+    reason = "No high-risk case found"
+    risk_score = 0.0
+    
+    if case:
+        risk_score = case.risk_score
+        if case.status == "ESCALATED":
+            decision = "hold"
+            reason = f"Customer has an ESCALATED cross-channel case ({case.case_id})"
+        elif case.status == "PENDING_REVIEW" or risk_score >= 0.6:
+            decision = "step_up"
+            reason = f"Customer has a high-risk open case ({case.case_id})"
+            
+    latency_ms = int((time.time() - start) * 1000)
+    logger.info(f"Fast-lane risk check for {entity_id}: {decision} ({latency_ms}ms)")
+    
+    return {
+        "status": "ok",
+        "entity_id": entity_id,
+        "decision": decision,
+        "reason": reason,
+        "risk_score": risk_score,
+        "latency_ms": latency_ms,
+        "case_id": case.case_id if case else None
+    }
 
 @app.get("/api/v1/hitl/pending")
 async def get_pending_hitl_reviews():
@@ -292,6 +332,79 @@ async def get_case_details_endpoint(case_id: str):
     return {"status": "ok", "case": case}
 
 
+# --- Action layer endpoints (Gap 1) ---
+
+@app.get("/api/v1/actions/log")
+async def get_action_log():
+    """Get the audit trail of all action decisions the engine has made."""
+    from backend.src.actions.policy_engine import get_action_log
+    return {"status": "ok", "actions": get_action_log()}
+
+
+@app.post("/api/v1/actions/evaluate")
+async def evaluate_action_endpoint(payload: dict):
+    """
+    Check what action the engine would take for a given entity.
+    Useful for testing policies without actually executing them.
+    """
+    from backend.src.actions.policy_engine import evaluate_action
+    from backend.src.case.store import get_open_case_for_entity, get_case_with_events
+
+    entity_id = payload.get("entity_id")
+    if not entity_id:
+        raise HTTPException(status_code=400, detail="entity_id is required")
+
+    case = get_open_case_for_entity(entity_id)
+    case_data = None
+    if case:
+        case_data = get_case_with_events(case.case_id)
+
+    event_data = {
+        "channel": payload.get("channel", "transaction"),
+        "is_first_time_payee": payload.get("is_first_time_payee", False),
+    }
+
+    decision = evaluate_action(case_data, event_data)
+    return {"status": "ok", "decision": decision.to_dict()}
+
+
+# --- Notification layer endpoints (Gap 4) ---
+
+@app.get("/api/v1/notifications/pending")
+async def get_pending_notifications_endpoint(priority: Optional[str] = None):
+    """Get all unacknowledged analyst alerts, sorted by urgency."""
+    from backend.src.notifications.dispatcher import get_pending_notifications
+    return {"status": "ok", "notifications": get_pending_notifications(priority)}
+
+
+@app.post("/api/v1/notifications/acknowledge")
+async def acknowledge_notification_endpoint(payload: dict):
+    """Mark a notification as seen by an analyst (stops the SLA timer)."""
+    from backend.src.notifications.dispatcher import acknowledge_notification
+    notif_id = payload.get("notification_id")
+    analyst_id = payload.get("analyst_id")
+    if not notif_id or not analyst_id:
+        raise HTTPException(status_code=400, detail="notification_id and analyst_id are required")
+    success = acknowledge_notification(notif_id, analyst_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Notification not found")
+    return {"status": "ok", "acknowledged": True}
+
+
+@app.get("/api/v1/notifications/sla-breaches")
+async def get_sla_breaches():
+    """Check for analyst alerts where nobody acted within the SLA window."""
+    from backend.src.notifications.dispatcher import check_sla_breaches
+    return {"status": "ok", "breaches": check_sla_breaches()}
+
+
+@app.get("/api/v1/notifications/stats")
+async def get_notification_stats_endpoint():
+    """Summary stats for the notification system."""
+    from backend.src.notifications.dispatcher import get_notification_stats
+    return {"status": "ok", "stats": get_notification_stats()}
+
+
 @app.get("/")
 @app.get("/admin", response_class=HTMLResponse)
 @app.get("/analytics", response_class=HTMLResponse)
@@ -312,10 +425,17 @@ async def root_api():
         "endpoints": [
             "/ws/events",
             "/api/call-fraud/analyze",
+            "/api/v1/risk/{entity_id}",
             "/api/v1/hitl/pending",
             "/api/v1/hitl/resolve",
             "/api/v1/blocklist",
             "/api/v1/evidence/{case_id}",
+            "/api/v1/actions/log",
+            "/api/v1/actions/evaluate",
+            "/api/v1/notifications/pending",
+            "/api/v1/notifications/acknowledge",
+            "/api/v1/notifications/sla-breaches",
+            "/api/v1/notifications/stats",
             "/api/simulation/status",
             "/api/simulation/inject",
             "/api/threats/live",
