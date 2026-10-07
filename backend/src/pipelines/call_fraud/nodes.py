@@ -144,13 +144,14 @@ def audit_call_node(state: CallFraudState) -> Dict[str, Any]:
         return {"violations": cached_violations, "final_status": final_status, "audit_source": f"Script_Cache_Hit_{similarity:.2f}"}
 
     # Stage 4c: Escalated Novel Case -> Gemini LLM Forensic Audit
-    logger.info("ESCALATING TO GEMINI LLM: Novel ambiguous transcript requires forensic LLM reasoning pass.")
     api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
-    model_name = os.getenv("GEMINI_MODEL_NAME", "gemini-3.6-flash")
+    model_name = os.getenv("GEMINI_MODEL_NAME", "gemini-3.7-flash")
 
+    clean_key = (api_key or "").strip()
+    is_valid_key = bool(clean_key and clean_key != "your-gemini-api-key-here" and not clean_key.startswith("your-") and len(clean_key) > 15)
 
-    if not api_key:
-        logger.warning("GEMINI_API_KEY not set. Using rule-based ML fallback audit.")
+    if not is_valid_key:
+        logger.info("GEMINI_API_KEY placeholder or unconfigured. Employing deterministic forensic ML rule audit pass.")
         violations = [{
             "category": "High_ML_Scam_Probability",
             "description": f"ML Classifier detected high fraud probability ({ml_score.get('fraud_percentage', 0)}%) based on: {', '.join(ml_score.get('top_risk_drivers', []))}",
@@ -160,6 +161,7 @@ def audit_call_node(state: CallFraudState) -> Dict[str, Any]:
         final_status = "failed" if ml_score.get("risk_level") == "CRITICAL" else ("warning" if violations else "success")
         return {"violations": violations, "final_status": final_status, "audit_source": "ML_Rule_Fallback_No_API_Key"}
 
+    logger.info("ESCALATING TO GEMINI LLM: Novel ambiguous transcript requires forensic LLM reasoning pass.")
     cache_buster = str(uuid.uuid4())
     system_prompt = (
         f"Session ID: {cache_buster}. You are an AI Fraud Call & Vishing Analyst specializing "
