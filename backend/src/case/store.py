@@ -32,7 +32,11 @@ def get_open_case_for_entity(entity_id: str) -> Optional[Case]:
         case = (
             session.query(Case)
             .filter(Case.entity_id == entity_id)
-            .filter(Case.status.in_([CaseStatus.OPEN.value, CaseStatus.ESCALATED.value]))
+            .filter(Case.status.in_([
+                CaseStatus.OPEN.value, 
+                CaseStatus.ESCALATED.value,
+                CaseStatus.PENDING_REVIEW.value,
+            ]))
             .order_by(Case.last_event_at.desc())
             .first()
         )
@@ -125,7 +129,11 @@ def count_open_cases() -> int:
     try:
         return (
             session.query(Case)
-            .filter(Case.status.in_([CaseStatus.OPEN.value, CaseStatus.ESCALATED.value]))
+            .filter(Case.status.in_([
+                CaseStatus.OPEN.value, 
+                CaseStatus.ESCALATED.value,
+                CaseStatus.PENDING_REVIEW.value,
+            ]))
             .count()
         )
     finally:

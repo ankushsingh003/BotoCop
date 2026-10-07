@@ -92,9 +92,13 @@ Output ONLY JSON, no preamble:
         data = _extract_json(response.content)
         return EventEvalModel(**data)
     except Exception as e:
-        logger.error(f"Event eval failed, defaulting to rule-based fallback confidence: {e}")
-        return EventEvalModel(is_confident=True, confidence_score=0.85, feedback="")
-
+        logger.error(f"Event eval failed (LLM down?): {e}")
+        # Explicit degraded mode: fail open, but flag it
+        return EventEvalModel(
+            is_confident=True, 
+            confidence_score=0.0, 
+            feedback="judge_unavailable: fallback to deterministic pipeline result"
+        )
 
 
 def evaluate_case(case: Dict[str, Any]) -> CaseEvalModel:
@@ -136,5 +140,10 @@ Output ONLY JSON, no preamble:
         data = _extract_json(response.content)
         return CaseEvalModel(**data)
     except Exception as e:
-        logger.error(f"Case eval failed, defaulting to not-fraud/low-confidence: {e}")
-        return CaseEvalModel(is_coordinated_fraud=False, confidence_score=0.0, reasoning=f"Eval error: {e}")
+        logger.error(f"Case eval failed (LLM down?): {e}")
+        # Explicit degraded mode: flag as error so orchestrator can push high-risk cases to human
+        return CaseEvalModel(
+            is_coordinated_fraud=False, 
+            confidence_score=0.0, 
+            reasoning="judge_unavailable"
+        )

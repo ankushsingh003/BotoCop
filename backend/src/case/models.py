@@ -51,6 +51,7 @@ class GUID(TypeDecorator):
 class CaseStatus(str, enum.Enum):
     OPEN = "open"
     ESCALATED = "escalated"
+    PENDING_REVIEW = "pending_review"
     CLOSED_FRAUD = "closed_fraud"
     CLOSED_CLEARED = "closed_cleared"
     STALE = "stale"
