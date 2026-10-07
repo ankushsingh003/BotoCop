@@ -193,7 +193,7 @@ PYTHONPATH=. python -m backend.eval.run_eval    # requires GEMINI_API_KEY
 - **The video pipeline's retry cost is unaddressed** -- a full re-run (download + transcription + both LLM passes) per retry attempt.
 - **No ground-truth feedback loop from real outcomes** -- cases don't get updated with "this turned out to actually be fraud/not fraud" after the fact, so the golden dataset is currently the only source of truth for accuracy, not live case resolutions.
 - **No cost/token tracking per LLM call** -- a real concern once this runs at volume, not yet instrumented.
-- **This was built and tested against mocked/local infrastructure** (no live Groq, Kafka, MinIO, or Postgres in the sandbox it was built in) -- deploying against the real services is the next real-world test, not yet done.
+- **This was built and tested against mocked/local infrastructure** (no live Gemini, Kafka, MinIO, or Postgres in the sandbox it was built in) -- deploying against the real services is the next real-world test, not yet done.
 
 ## Roadmap
 
