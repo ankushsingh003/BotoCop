@@ -32,6 +32,9 @@ class LegacyEvent(Base):
     processed = Column(Boolean, default=False)
 
 def seed_database():
+    if INGESTION_DB_URL.startswith("sqlite") and ":memory:" not in INGESTION_DB_URL:
+        db_path = INGESTION_DB_URL.split("///")[-1]
+        os.makedirs(os.path.dirname(db_path) or ".", exist_ok=True)
     Base.metadata.create_all(bind=engine)
     session = SessionLocal()
 
@@ -137,68 +140,33 @@ import threading
 import uvicorn
 from backend.src.api.server import app
 
-import socket
-
-def is_port_in_use(port: int) -> bool:
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        return s.connect_ex(('127.0.0.1', port)) == 0
-
-def start_metrics_server():
-    if is_port_in_use(8000):
-        logger.info("Prometheus metrics server is already active on port 8000.")
-        return
-    try:
-        logger.info("Starting Prometheus metrics API server on port 8000...")
-        uvicorn.run(app, host="0.0.0.0", port=8000, log_level="warning")
-    except Exception as e:
-        logger.warning(f"Metrics server start notice: {e}")
-
-
-def run_db_polling_simulation():
+def run_production_system():
     """
-    Polls the legacy SQL database for unprocessed events and pushes them
-    into the fraud detection orchestrator.
+    Production entry point:
+    1. Initializes case and event databases.
+    2. Launches the controllable Cyber Security Simulation Engine daemon.
+    3. Runs the FastAPI server & SOC Security Dashboard.
     """
-    threading.Thread(target=start_metrics_server, daemon=True).start()
-
-    logger.info("Starting SQL Database Polling...")
-    
+    logger.info("Initializing BotoCop Telephony & Multi-Channel Fraud Defense System...")
     init_db()
-    
-    seed_database()
 
-    
-    while True:
-        session = SessionLocal()
-        try:
-            unprocessed = session.query(LegacyEvent).filter(LegacyEvent.processed == False).first()
-            
-            if unprocessed:
-                logger.info(f"Polled new record: {unprocessed.id} (Type: {unprocessed.event_type})")
-                
-                payload = json.loads(unprocessed.payload)
-                
-                try:
-                    result = handle_event(unprocessed.event_type, payload)
-                    logger.info(f"Successfully processed {unprocessed.id}. Case ID: {result['case_id']} | Risk Score: {result.get('case_risk', {}).get('risk_score')}")
-                    
-                    unprocessed.processed = True
-                    session.commit()
-                except Exception as e:
-                    logger.error(f"Failed to process row {unprocessed.id}: {e}")
-                    unprocessed.processed = True
-                    session.commit()
-                    
-            else:
-                logger.info("All events processed. Resetting legacy event queue for continuous simulation...")
-                session.query(LegacyEvent).update({LegacyEvent.processed: False})
-                session.commit()
-                
-        finally:
-            session.close()
-            
-        time.sleep(3) # Poll every 3 seconds
+    # Pre-seed legacy table once if needed
+    try:
+        seed_database()
+    except Exception as e:
+        logger.warning(f"Database seed note: {e}")
+
+    # Launch production simulation engine daemon
+    from backend.src.simulation.engine import get_simulation_engine
+    sim_engine = get_simulation_engine()
+    sim_engine.start_background_simulation()
+    logger.info("Cyber Security Threat Simulation Engine daemon running in background.")
+
+    port = int(os.getenv("PORT", 8000))
+    logger.info(f"BotoCop SOC Security Dashboard live at http://localhost:{port}/")
+    uvicorn.run(app, host="0.0.0.0", port=port, log_level="info")
 
 
 if __name__ == "__main__":
-    run_db_polling_simulation()
+    run_production_system()
+
