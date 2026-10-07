@@ -121,6 +121,7 @@ class CallFraudMLModel:
             "recommended_action": action,
             "top_risk_drivers": top_drivers,
             "model_type": "RandomForestClassifier",
+            "model_version": "v1.0.0",
         }
 
 
