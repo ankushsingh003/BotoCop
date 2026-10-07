@@ -23,12 +23,15 @@ def get_producer(bootstrap_servers: str = KAFKA_BOOTSTRAP_SERVERS):
     return KafkaProducer(
         bootstrap_servers=bootstrap_servers,
         value_serializer=lambda v: json.dumps(v, default=str).encode("utf-8"),
+        key_serializer=lambda k: k.encode("utf-8") if k else None,
     )
 
 
 def publish_event(producer, channel: str, payload: dict):
+    from backend.src.case.linker import resolve_entity_id
     topic = CHANNEL_TO_TOPIC.get(channel)
     if topic is None:
         raise ValueError(f"Unknown channel '{channel}'")
-    producer.send(topic, payload)
-    logger.info(f"Published {channel} event to {topic}")
+    entity_id = resolve_entity_id(channel, payload)
+    producer.send(topic, key=entity_id, value=payload)
+    logger.info(f"Published {channel} event to {topic} (key={entity_id})")
