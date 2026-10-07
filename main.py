@@ -162,6 +162,39 @@ def run_production_system():
     sim_engine.start_background_simulation()
     logger.info("Cyber Security Threat Simulation Engine daemon running in background.")
 
+    # Gap 9: Launch outbox relay worker
+    def outbox_worker():
+        from backend.src.datalake.writer import relay_outbox
+        while True:
+            try:
+                processed = relay_outbox()
+                if processed == 0:
+                    time.sleep(5) # Sleep if no pending rows
+                else:
+                    time.sleep(0.1) # Fast poll if we just processed a batch
+            except Exception as e:
+                logger.error(f"Outbox worker crashed: {e}")
+                time.sleep(10)
+
+    relay_thread = threading.Thread(target=outbox_worker, daemon=True)
+    relay_thread.start()
+    logger.info("Datalake outbox relay worker running in background.")
+
+    # Gap 12: Launch hold SLA auto-release worker
+    def hold_sla_worker():
+        from backend.src.actions.policy_engine import auto_release_expired_holds
+        while True:
+            try:
+                auto_release_expired_holds()
+                time.sleep(60)  # Check every minute
+            except Exception as e:
+                logger.error(f"Hold SLA worker error: {e}")
+                time.sleep(60)
+
+    hold_sla_thread = threading.Thread(target=hold_sla_worker, daemon=True)
+    hold_sla_thread.start()
+    logger.info("Hold SLA auto-release worker running in background.")
+
     port = int(os.getenv("PORT", 8000))
     logger.info(f"BotoCop SOC Security Dashboard live at http://localhost:{port}/")
     
