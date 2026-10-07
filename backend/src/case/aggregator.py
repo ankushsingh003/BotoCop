@@ -12,7 +12,7 @@ from typing import Dict, Any, List
 
 logger = logging.getLogger("case-aggregator")
 
-SEVERITY_WEIGHTS = {"low": 0.1, "medium": 0.35, "high": 0.7}
+SEVERITY_WEIGHTS = {"low": 0.1, "medium": 0.35, "high": 0.7, "critical": 1.0}
 
 ESCALATION_THRESHOLD = 0.6
 MIN_CHANNELS_FOR_ESCALATION = 2
