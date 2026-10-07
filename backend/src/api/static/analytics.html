@@ -1308,26 +1308,36 @@
           tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--text-dark);padding:20px">No cases pending.</td></tr>`;
           return;
         }
-        tbody.innerHTML = cases.map(c => `<tr>
-          <td>${c.case_id.substring(0, 8)}...</td>
+        tbody.innerHTML = cases.map(c => {
+          let score = "-";
+          if (c.ml_score && typeof c.ml_score === "object") {
+            score = c.ml_score.risk_score !== undefined ? c.ml_score.risk_score : (c.ml_score.fraud_probability !== undefined ? c.ml_score.fraud_probability : c.ml_score.risk_level);
+          } else if (c.risk_score !== undefined) {
+            score = c.risk_score;
+          }
+          const formattedScore = (typeof score === "number") ? score.toFixed(2) : (score || "-");
+          const timeStr = c.enqueued_at ? new Date(c.enqueued_at * 1000).toLocaleTimeString() : (c.created_at ? new Date(c.created_at).toLocaleTimeString() : "-");
+          return `<tr>
+          <td>${c.case_id ? c.case_id.substring(0, 8) + '...' : 'N/A'}</td>
           <td style="color:#fff;font-weight:600">${c.caller_phone || "N/A"}</td>
           <td>${c.channel || "call"}</td>
-          <td>${c.risk_score}</td>
-          <td>${c.created_at ? new Date(c.created_at).toLocaleTimeString() : "-"}</td>
+          <td>${formattedScore}</td>
+          <td>${timeStr}</td>
           <td style="text-align:right">
-            <button class="btn-action" style="padding:4px 8px" onclick="resolveHITL('${c.case_id}','blocked')">BLOCK</button>
-            <button class="btn-action" style="padding:4px 8px;margin-left:4px" onclick="resolveHITL('${c.case_id}','cleared')">CLEAR</button>
+            <button class="btn-action" style="padding:4px 8px" onclick="resolveHITL('${c.case_id}','CONFIRM_FRAUD')">BLOCK</button>
+            <button class="btn-action" style="padding:4px 8px;margin-left:4px" onclick="resolveHITL('${c.case_id}','OVERRIDE_FALSE_POSITIVE')">CLEAR</button>
           </td>
-        </tr>`).join("");
+        </tr>`;
+        }).join("");
       } catch (err) { console.error("HITL load failed:", err); }
     }
 
-    async function resolveHITL(caseId, action) {
+    async function resolveHITL(caseId, decision) {
       try {
         await fetch("/api/v1/hitl/resolve", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ case_id: caseId, action })
+          body: JSON.stringify({ case_id: caseId, analyst_id: "SOC_Operator", decision: decision, notes: "Resolution via SOC Dashboard" })
         });
         loadHITL();
       } catch (err) { console.error("HITL resolve failed:", err); }
