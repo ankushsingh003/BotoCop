@@ -73,7 +73,9 @@ async def serve_analytics_dashboard():
 @app.get("/health")
 @app.get("/api/health")
 async def health():
-    return {"status": "healthy"}
+    """Render health check endpoint — must stay fast and dependency-free."""
+    import time
+    return {"status": "healthy", "service": "botocop-fraud-engine", "version": "2.4.0"}
 
 
 

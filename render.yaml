@@ -2,9 +2,15 @@ services:
   - type: web
     name: botocop-auditor
     env: python
+    # NOTE: Free tier spins down after 15 min of inactivity.
+    # The first request after sleep will see a ~30s cold start (503 briefly) -- that is normal Render behaviour.
+    # Upgrade to a paid instance or use a cron ping service (e.g. UptimeRobot) to keep the dyno warm.
     buildCommand: "./build.sh"
-    startCommand: "uv run uvicorn backend.src.api.server:app --host 0.0.0.0 --port $PORT"
+    startCommand: "uv run uvicorn backend.src.api.server:app --host 0.0.0.0 --port $PORT --timeout-keep-alive 120"
+    healthCheckPath: /health
     envVars:
+      - key: PORT
+        value: "10000"
       - key: GEMINI_API_KEY
         sync: false
       - key: GEMINI_MODEL_NAME
@@ -19,5 +25,3 @@ services:
         sync: false
       - key: KAFKA_BOOTSTRAP_SERVERS
         sync: false
-
-
