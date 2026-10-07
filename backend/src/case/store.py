@@ -145,3 +145,62 @@ def update_case_status(case_id, status: CaseStatus, risk_score: Optional[float] 
         logger.info(f"Case {case_id} updated -> status={case.status}, risk_score={case.risk_score}")
     finally:
         session.close()
+
+
+def get_recent_cases(limit: int = 30) -> list:
+    """Retrieve the most recent cases for SOC dashboard analysis."""
+    session = get_session()
+    try:
+        cases = (
+            session.query(Case)
+            .order_by(Case.last_event_at.desc().nullslast(), Case.opened_at.desc())
+            .limit(limit)
+            .all()
+        )
+        results = []
+        for c in cases:
+            latest_event = (
+                session.query(CaseEvent)
+                .filter(CaseEvent.case_id == c.case_id)
+                .order_by(CaseEvent.created_at.desc())
+                .first()
+            )
+            event_count = session.query(CaseEvent).filter(CaseEvent.case_id == c.case_id).count()
+            results.append({
+                "case_id": str(c.case_id),
+                "entity_id": c.entity_id,
+                "status": c.status,
+                "risk_score": round(c.risk_score or 0.0, 3),
+                "opened_at": c.opened_at.isoformat() if c.opened_at else None,
+                "last_event_at": c.last_event_at.isoformat() if c.last_event_at else None,
+                "event_count": event_count,
+                "latest_channel": latest_event.channel if latest_event else "unknown",
+                "latest_status": (latest_event.pipeline_result or {}).get("final_status") if latest_event else "unknown",
+                "violations_count": len((latest_event.pipeline_result or {}).get("violations", [])) if latest_event else 0,
+            })
+        return results
+    finally:
+        session.close()
+
+
+def get_case_statistics() -> dict:
+    """Compute overall case and threat statistics."""
+    session = get_session()
+    try:
+        total_cases = session.query(Case).count()
+        open_cases = session.query(Case).filter(Case.status == CaseStatus.OPEN.value).count()
+        escalated_cases = session.query(Case).filter(Case.status == CaseStatus.ESCALATED.value).count()
+        blocked_cases = session.query(Case).filter(Case.status == CaseStatus.CLOSED_FRAUD.value).count()
+        total_events = session.query(CaseEvent).count()
+        high_risk_cases = session.query(Case).filter(Case.risk_score >= 0.5).count()
+        return {
+            "total_cases": total_cases,
+            "open_cases": open_cases,
+            "escalated_cases": escalated_cases,
+            "blocked_cases": blocked_cases,
+            "total_events": total_events,
+            "high_risk_cases": high_risk_cases,
+        }
+    finally:
+        session.close()
+
